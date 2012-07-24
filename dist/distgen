@@ -1,0 +1,38 @@
+#! /bin/bash
+###########################################################################
+##                                                                       ##
+##                               OCamlCC                                 ##
+##                                                                       ##
+##                    Michel Mauny, Benoit Vaugon                        ##
+##                          ENSTA ParisTech                              ##
+##                                                                       ##
+##    This file is distributed under the terms of the CeCILL license.    ##
+##    See file ../LICENSE-en.                                            ##
+##                                                                       ##
+###########################################################################
+
+cd $(dirname "$0")
+
+VERSION=$(cat ../VERSION)
+DEST=ocamlcc-"$VERSION"
+
+rm -Rf "$DEST"
+
+for d in "$DEST" "$DEST/bin" "$DEST/dist" "$DEST/etc"; do
+    mkdir "$d"
+done
+
+for d in \
+    configure include INSTALL LICENSE-en LICENSE-fr Makefile man \
+    RUNTIME_VERSION src tests VERSION
+do
+    cp -R ../"$d" "$DEST/"
+done
+
+cp ./distgen "$DEST/dist/"
+
+tar jcf "$DEST.tar.bz2" "$DEST"
+
+rm -Rf "$DEST"
+
+echo "** Distribution $DEST.tar.bz2 created successfully **"

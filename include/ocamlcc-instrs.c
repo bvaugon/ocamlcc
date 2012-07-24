@@ -1,0 +1,431 @@
+/*************************************************************************/
+/*                                                                       */
+/*                               OCamlCC                                 */
+/*                                                                       */
+/*                    Michel Mauny, Benoit Vaugon                        */
+/*                          ENSTA ParisTech                              */
+/*                                                                       */
+/*    This file is distributed under the terms of the CeCILL license.    */
+/*    See file ../LICENSE-en.                                            */
+/*                                                                       */
+/*************************************************************************/
+
+#ifndef OCAMLCC_INSTRS_H
+#define OCAMLCC_INSTRS_H
+
+#define Glob(n) Field(caml_global_data, n)
+#define GlobField(n, p) Field(Field(caml_global_data, n), p)
+#define Offset(clsr, ofs) ((value) (((value *) clsr) + ofs))
+
+/* - */
+
+#define MOVE(src, dst) \
+  (dst) = (src);
+
+
+/* Unary operations */
+
+#define OFFSETINT(n, src, dst) \
+  (dst) = (src) + (n << 1);
+
+#define BOOLNOT(src, dst) \
+  (dst) = Val_not(src);
+
+#define NEGINT(src, dst) \
+  (dst) = (value) (2 - (intnat) (src));
+
+#define ISINT(src, dst) \
+  (dst) = Val_long((src) & 1);
+
+#define VECTLENGTH(src, dst) {                  \
+  mlsize_t size = Wosize_val(src);              \
+  if (Tag_val(src) == Double_array_tag)         \
+    size = size / Double_wosize;                \
+  (dst) = Val_long(size);                       \
+}
+
+
+/* Binary operations */
+
+#define ADDINT(op1, op2, dst) \
+  (dst) = (value) ((intnat) (op1) + (intnat) (op2) - 1);
+
+#define SUBINT(op1, op2, dst) \
+  (dst) = (value) ((intnat) (op1) - (intnat) (op2) + 1);
+
+#define MULINT(op1, op2, dst) \
+  (dst) = Val_long(Long_val(op1) * Long_val(op2));
+
+#ifdef NONSTANDARD_DIV_MOD
+
+#define DIVINT(op1, op2, dst, frame_sz) {                       \
+  intnat divisor = Long_val(op2);                               \
+  if (divisor == 0) {                                           \
+    caml_extern_sp = sp - frame_sz;                             \
+    caml_raise_zero_divide();                                   \
+  }                                                             \
+  (dst) = Val_long(caml_safe_div(Long_val(op1), divisor));      \
+}
+
+#define MODINT(op1, op2, dst, frame_sz) {                       \
+  intnat divisor = Long_val(op2);                               \
+  if (divisor == 0) {                                           \
+    caml_extern_sp = sp - frame_sz;                             \
+    caml_raise_zero_divide();                                   \
+  }                                                             \
+  (dst) = Val_long(caml_safe_mod(Long_val(op1), divisor));      \
+}
+
+#else
+
+#define DIVINT(op1, op2, dst, frame_sz) {                       \
+  intnat divisor = Long_val(op2);                               \
+  if (divisor == 0) {                                           \
+    caml_extern_sp = sp - frame_sz;                             \
+    caml_raise_zero_divide();                                   \
+  }                                                             \
+  (dst) = Val_long(Long_val(op1) / divisor);                    \
+}
+
+#define MODINT(op1, op2, dst, frame_sz) {                       \
+  intnat divisor = Long_val(op2);                               \
+  if (divisor == 0) {                                           \
+    caml_extern_sp = sp - frame_sz;                             \
+    caml_raise_zero_divide();                                   \
+  }                                                             \
+  (dst) = Val_long(Long_val(op1) % divisor);                    \
+}
+
+#endif
+
+#define ANDINT(op1, op2, dst) \
+  (dst) = (value) ((intnat) (op1) & (intnat) (op2));
+
+#define ORINT(op1, op2, dst) \
+  (dst) = (value) ((intnat) (op1) | (intnat) (op2));
+
+#define XORINT(op1, op2, dst) \
+  (dst) = (value) (((intnat) (op1) ^ (intnat) (op2)) | 1);
+
+#define LSLINT(op1, op2, dst) \
+  (dst) = (value) ((((intnat) (op1) - 1) << Long_val(op2)) + 1);
+
+#define LSRINT(op1, op2, dst) \
+  (dst) = (value) ((((uintnat) (op1) - 1) >> Long_val(op2)) | 1);
+
+#define ASRINT(op1, op2, dst) \
+  (dst) = (value) ((((intnat) (op1) - 1) >> Long_val(op2)) | 1);
+
+#define EQ(op1, op2, dst) \
+  (dst) = Val_int((intnat) (op1) == (intnat) (op2));
+
+#define NEQ(op1, op2, dst) \
+  (dst) = Val_int((intnat) (op1) != (intnat) (op2));
+
+#define LTINT(op1, op2, dst) \
+  (dst) = Val_int((intnat) (op1) < (intnat) (op2));
+
+#define LEINT(op1, op2, dst) \
+  (dst) = Val_int((intnat) (op1) <= (intnat) (op2));
+
+#define GTINT(op1, op2, dst) \
+  (dst) = Val_int((intnat) (op1) > (intnat) (op2));
+
+#define GEINT(op1, op2, dst) \
+  (dst) = Val_int((intnat) (op1) >= (intnat) (op2));
+
+#define ULTINT(op1, op2, dst) \
+  (dst) = Val_int((uintnat) (op1) < (uintnat) (op2));
+
+#define UGEINT(op1, op2, dst) \
+  (dst) = Val_int((uintnat) (op1) >= (uintnat) (op2));
+
+#define GETVECTITEM(op1, op2, dst) \
+  (dst) = Field((op1), Long_val(op2));
+
+#define GETSTRINGCHAR(op1, op2, dst) \
+  (dst) = Val_int(Byte_u((op1), Long_val(op2)));
+
+
+/* Branches and conditional branches */
+
+#define BRANCH(lab) \
+  goto lab;
+
+#define BRANCHIF(src, lab) {                            \
+  if ((src) != Val_false) goto lab;                     \
+}
+
+#define BRANCHIFNOT(src, lab) {                         \
+  if ((src) == Val_false) goto lab;                     \
+}
+
+#define BEQ(n, src, lab) {                              \
+  if ((n) == (intnat) Long_val(src)) goto lab;          \
+}
+
+#define BNEQ(n, src, lab) {                             \
+  if ((n) != (intnat) Long_val(src)) goto lab;          \
+}
+
+#define BLTINT(n, src, lab) {                           \
+  if ((n) < (intnat) Long_val(src)) goto lab;           \
+}
+
+#define BLEINT(n, src, lab) {                           \
+  if ((n) <= (intnat) Long_val(src)) goto lab;          \
+}
+
+#define BGTINT(n, src, lab) {                           \
+  if ((n) > (intnat) Long_val(src)) goto lab;           \
+}
+
+#define BGEINT(n, src, lab) {                           \
+  if ((n) >= (intnat) Long_val(src)) goto lab;          \
+}
+
+#define BULTINT(n, src, lab) {                          \
+  if ((n) < (uintnat) Long_val(src)) goto lab;          \
+}
+
+#define BUGEINT(n, src, lab) {                          \
+  if ((n) >= (uintnat) Long_val(src)) goto lab;         \
+}
+
+
+/* Function application */
+
+#define DYNAMIC_APPLY(nargs, curr_fsz, next_fsz, dst, args...) {          \
+  if (next_fsz != 0) {                                                    \
+    if ((caml_extern_sp = sp - next_fsz) < caml_stack_threshold) {        \
+      caml_extern_sp = sp - curr_fsz;                                     \
+      caml_realloc_stack(Stack_threshold / sizeof(value));                \
+      sp = caml_extern_sp + curr_fsz;                                     \
+      caml_extern_sp = sp - next_fsz;                                     \
+    }                                                                     \
+  } else {                                                                \
+    caml_extern_sp = sp;                                                  \
+  }                                                                       \
+  dst ocamlcc_apply_##nargs(args);                                        \
+  sp = caml_extern_sp + next_fsz;                                         \
+}
+
+#define PARTIAL_APPLY(nargs, curr_fsz, next_fsz, dst, args...)  \
+  DYNAMIC_APPLY(nargs, curr_fsz, next_fsz, dst, args)
+
+#define STATIC_APPLY(nargs, curr_fsz, next_fsz, dst, f, args...) {        \
+  if (next_fsz != 0) {                                                    \
+    if ((caml_extern_sp = sp - next_fsz) < caml_stack_threshold) {        \
+      caml_extern_sp = sp - curr_fsz;                                     \
+      caml_realloc_stack(Stack_threshold / sizeof(value));                \
+      sp = caml_extern_sp + curr_fsz;                                     \
+      caml_extern_sp = sp - next_fsz;                                     \
+    }                                                                     \
+  } else {                                                                \
+    caml_extern_sp = sp;                                                  \
+  }                                                                       \
+  dst f(args);                                                            \
+  sp = caml_extern_sp + next_fsz;                                         \
+}
+
+#define DYNAMIC_STANDARD_APPTERM(nargs, curr_fsz, args...) {            \
+  caml_extern_sp = sp;                                                  \
+  return ocamlcc_apply_##nargs(args);                                   \
+}
+
+#define PARTIAL_STANDARD_APPTERM(nargs, curr_fsz, args...)    \
+  DYNAMIC_STANDARD_APPTERM(nargs, curr_fsz, args)
+
+#define STATIC_STANDARD_APPTERM(f, args...) {           \
+  caml_extern_sp = sp;                                  \
+  return f(args);                                       \
+}
+
+#define DYNAMIC_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args...) {   \
+  caml_extern_sp = sp;                                                  \
+  ocamlcc_tail_call_##tc_nargs((value) &ocamlcc_apply_##nargs, args);   \
+}
+
+#define PARTIAL_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args...)     \
+  DYNAMIC_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args)
+
+#define SPECIAL_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args...)     \
+  DYNAMIC_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args)
+
+#define STATIC_SPECIAL_APPTERM(tc_nargs, f, args...) {  \
+  caml_extern_sp = sp;                                  \
+  ocamlcc_tail_call_##tc_nargs((value) &f, args);       \
+}
+
+#define RETURN(src) {                           \
+  caml_extern_sp = sp;                          \
+  return (src);                                 \
+}
+
+
+/* Allocation of blocks */
+
+#define MAKE_YOUNG_BLOCK(size, tag, dst, frame_sz)      \
+  Ocamlcc_alloc_small((dst), (size), (tag),             \
+                      caml_extern_sp = sp - frame_sz,);
+
+#define MAKE_SAVED_YOUNG_BLOCK(to_save, size, tag, dst, frame_sz)       \
+  Ocamlcc_alloc_small((dst), (size), (tag),                             \
+                      *(caml_extern_sp = sp - frame_sz - 1) = to_save,  \
+                      to_save = *caml_extern_sp);
+
+#define MAKE_BLOCK(size, tag, dst, frame_sz) {          \
+  caml_extern_sp = sp - frame_sz;                       \
+  (dst) = caml_alloc_shr((size), (tag));                \
+}
+
+#define MAKE_SAVED_BLOCK(to_save, size, tag, dst, frame_sz) {   \
+  *(caml_extern_sp = sp - frame_sz - 1) = to_save;              \
+  (dst) = caml_alloc_shr((size), (tag));                        \
+  to_save = *caml_extern_sp;                                    \
+}
+
+#define MAKE_YOUNG_FLOAT_BLOCK(size, dst, frame_sz)                     \
+  Ocamlcc_alloc_small((dst), (size) * Double_wosize,                    \
+                      Double_array_tag,                                 \
+                      caml_extern_sp = sp - frame_sz,);
+
+#define MAKE_SAVED_YOUNG_FLOAT_BLOCK(to_save, size, dst, frame_sz)      \
+  Ocamlcc_alloc_small((dst), (size) * Double_wosize,                    \
+                      Double_array_tag,                                 \
+                      *(caml_extern_sp = sp - frame_sz - 1) = to_save,  \
+                      to_save = *caml_extern_sp);
+
+#define MAKE_FLOAT_BLOCK(size, dst, frame_sz) {                         \
+  caml_extern_sp = sp - frame_sz;                                       \
+  (dst) = caml_alloc_shr((size) * Double_wosize, Double_array_tag);     \
+}
+
+#define MAKE_SAVED_FLOAT_BLOCK(to_save, size, dst, frame_sz) {          \
+  *(caml_extern_sp = sp - frame_sz - 1) = to_save;                      \
+  (dst) = caml_alloc_shr((size) * Double_wosize, Double_array_tag);     \
+  to_save = *caml_extern_sp;                                            \
+}
+
+/* Access to components of blocks */
+
+#define SET_YOUNG_FIELD(ind, block, src) \
+  Field((block), (ind)) = (src);
+
+#define SETFIELD(ind, block, src) \
+  caml_modify(&Field((block), (ind)), (src));
+
+#define SETFLOATFIELD(ind, block, src) \
+  Store_double_field((block), (ind), Double_val(src));
+
+#define GETFIELD(ind, block, dst) \
+  (dst) = Field((block), (ind));
+
+#define GETFLOATFIELD(ind, block, dst, frame_sz) {               \
+  value flt;                                                     \
+  double d = Double_field((block), (ind));                       \
+  Ocamlcc_alloc_small(flt, Double_wosize, Double_tag,            \
+                      caml_extern_sp = sp - frame_sz,);          \
+  Store_double_val(flt, d);                                      \
+  (dst) = flt;                                                   \
+}
+
+
+/* Access to global variables */
+
+#define SETGLOBAL(ind, src) \
+  caml_modify(&Field(caml_global_data, (ind)), (src));
+
+
+/* Signal check */
+
+#define CHECK_SIGNALS(frame_sz) {                       \
+  ocamlcc_check_something_to_do(frame_sz);              \
+}
+
+#define SAVED_CHECK_SIGNALS(to_save, frame_sz) {                        \
+  ocamlcc_saved_check_something_to_do(to_save, frame_sz);               \
+}
+
+
+/* C function call */
+
+#define CCALL(dst, fname, frame_sz, args...) {                         \
+  long ocamlcc_save_sp_offset = (char *) caml_stack_high - (char *) sp; \
+  caml_extern_sp = sp - frame_sz;                                      \
+  dst fname(args);                                                     \
+  sp = (value *) ((char *) caml_stack_high - ocamlcc_save_sp_offset);  \
+}
+
+#define BIG_CCALL(nargs, dst, fname, frame_sz, args...) {              \
+  long ocamlcc_save_sp_offset = (char *) caml_stack_high - (char *) sp; \
+  value arg_tbl[nargs] = { args };                                     \
+  caml_extern_sp = sp - frame_sz;                                      \
+  dst fname(arg_tbl, nargs);                                           \
+  sp = (value *) ((char *) caml_stack_high - ocamlcc_save_sp_offset);  \
+}
+
+
+/* Exceptions */
+
+#define RAISE(exn)                              \
+  ocamlcc_raise(exn)
+
+#define PUSHTRAP(restore_exn, lab, ukid)        \
+  ocamlcc_pushtrap(restore_exn, lab, ukid)
+
+#define POPTRAP(frame_sz)                       \
+  ocamlcc_poptrap(frame_sz)
+
+#define SAVED_POPTRAP(to_save, frame_sz)        \
+  ocamlcc_saved_poptrap(to_save, frame_sz)
+
+#define CATCH_EXCEPTION(lab, restore_exn)       \
+  ocamlcc_catch(lab, restore_exn)
+
+
+/* References */
+
+#define OFFSETREF(ofs, ref) \
+  Field((ref), 0) += (ofs) << 1;
+
+
+/* Array operations */
+
+#define SETVECTITEM(ind, block, src) \
+  caml_modify(&Field((block), Long_val(ind)), (src));
+
+
+/* String operations */
+
+#define SETSTRINGCHAR(ind, str, ch) \
+  Byte_u((str), Long_val(ind)) = Int_val(ch);
+
+
+/* Object-oriented operations */
+
+#define GETMETHOD(tag, obj, meth) \
+  meth = Field (Field ((obj), 0), Int_val(tag));
+
+#define GETPUBMET(tag, obj, meth) {                     \
+  value meths = Field ((obj), 0);                       \
+  value vtag = (tag);                                   \
+  int li = 3, hi = Field(meths,0), mi;                  \
+  while (li < hi) {                                     \
+    mi = ((li+hi) >> 1) | 1;                            \
+    if (vtag < Field(meths,mi)) hi = mi-2;              \
+    else li = mi;                                       \
+  }                                                     \
+  (meth) = Field (meths, li-1);                         \
+}
+
+#define GETDYNMET(tag, obj, meth) \
+  GETPUBMET((tag), (obj), (meth))
+
+
+/* Debugging and machine control */
+
+#define VM_STOP()                               \
+  return;
+
+#endif

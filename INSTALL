@@ -1,0 +1,73 @@
+                    Installing OCamlCC on a Unix machine
+                    ------------------------------------
+
+PREREQUISITES
+
+* The OCaml standard distribution
+
+
+INSTALLATION INSTRUCTIONS
+
+1- Configure the system. From the top directory, do:
+
+        ./configure
+
+This generates the configuration files "Makefile.conf", "config.ml"
+and "config.h" in the ./etc/ subdirectory.
+
+The "configure" script accepts the following options:
+
+-bindir <dir>                   (default: /usr/local/bin)
+        Directory where the binaries will be installed.
+
+-includedir <dir>               (default: /usr/local/include)
+        Directory where the C headers will be installed.
+
+-mandir <dir>                   (default: /usr/local/man/man1)
+        Directory where the manual pages will be installed.
+
+-prefix <dir>                   (default: /usr/local)
+        Set bindir, includedir and mandir to <dir>/bin, <dir>/include
+        and <dir>/man/man1 respectively.
+
+Examples:
+
+  Standard installation in /usr/{bin,include,man} instead of /usr/local:
+    ./configure -prefix /usr
+
+  Installation in /usr, man pages in section "l":
+    ./configure -bindir /usr/bin -includedir /usr/include -mandir /usr/man/manl
+
+
+2- From the top directory, do:
+
+        make
+
+This builds ocamlcc in the local directory ./bin/.
+
+
+3- You can now install OCamlCC. This will create the following command
+(in the binary directory selected during autoconfiguration):
+
+        ocamlcc         an Objective Caml to C code compiler
+
+From the top directory, become superuser and do:
+
+        umask 022       # make sure to give read & execute permission to all
+        make install
+
+4- Installation is complete. Time to clean up. From the toplevel
+directory, do:
+
+        make clean
+
+
+UNINSTALLATION INSTRUCTIONS
+
+1- If configuration files (./etc/Makefile.conf, ./etc/config.ml,
+./etc/config.h) have been lost, run again ./configure from the top
+directory with the same options as at step 1 of installation.
+
+2- From the top directory, become superuser and do:
+
+        make uninstall
