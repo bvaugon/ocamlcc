@@ -10,9 +10,6 @@
 /*                                                                       */
 /*************************************************************************/
 
-#ifndef OCAMLCC_ALLOC_H
-#define OCAMLCC_ALLOC_H
-
 #define Ocamlcc_alloc_small(result, wosize, tag, Before_gc, After_gc) {     \
   CAMLassert ((wosize) >= 1);                                               \
   CAMLassert ((tag_t) (tag) < 256);                                         \
@@ -29,5 +26,3 @@
   (result) = Val_hp (caml_young_ptr);                                       \
   DEBUG_clear ((result), (wosize));                                         \
 }
-
-#endif

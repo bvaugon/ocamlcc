@@ -10,9 +10,6 @@
 /*                                                                       */
 /*************************************************************************/
 
-#ifndef OCAMLCC_INSTRS_H
-#define OCAMLCC_INSTRS_H
-
 #define Glob(n) Field(caml_global_data, n)
 #define GlobField(n, p) Field(Field(caml_global_data, n), p)
 #define Offset(clsr, ofs) ((value) (((value *) clsr) + ofs))
@@ -195,72 +192,49 @@
 
 /* Function application */
 
-#define DYNAMIC_APPLY(nargs, curr_fsz, next_fsz, dst, args...) {          \
-  if (next_fsz != 0) {                                                    \
-    if ((caml_extern_sp = sp - next_fsz) < caml_stack_threshold) {        \
-      caml_extern_sp = sp - curr_fsz;                                     \
-      caml_realloc_stack(Stack_threshold / sizeof(value));                \
-      sp = caml_extern_sp + curr_fsz;                                     \
-      caml_extern_sp = sp - next_fsz;                                     \
-    }                                                                     \
-  } else {                                                                \
-    caml_extern_sp = sp;                                                  \
-  }                                                                       \
-  dst ocamlcc_apply_##nargs(args);                                        \
-  sp = caml_extern_sp + next_fsz;                                         \
-}
+#define DYNAMIC_APPLY(nargs, curr_fsz, next_fsz, dst, args...)  \
+  ocamlcc_dynamic_apply(nargs, curr_fsz, next_fsz, dst, args)
+  /* See ocamlcc-apply.c */
 
 #define PARTIAL_APPLY(nargs, curr_fsz, next_fsz, dst, args...)  \
-  DYNAMIC_APPLY(nargs, curr_fsz, next_fsz, dst, args)
+  ocamlcc_partial_apply(nargs, curr_fsz, next_fsz, dst, args)
+  /* See ocamlcc-apply.c */
 
-#define STATIC_APPLY(nargs, curr_fsz, next_fsz, dst, f, args...) {        \
-  if (next_fsz != 0) {                                                    \
-    if ((caml_extern_sp = sp - next_fsz) < caml_stack_threshold) {        \
-      caml_extern_sp = sp - curr_fsz;                                     \
-      caml_realloc_stack(Stack_threshold / sizeof(value));                \
-      sp = caml_extern_sp + curr_fsz;                                     \
-      caml_extern_sp = sp - next_fsz;                                     \
-    }                                                                     \
-  } else {                                                                \
-    caml_extern_sp = sp;                                                  \
-  }                                                                       \
-  dst f(args);                                                            \
-  sp = caml_extern_sp + next_fsz;                                         \
-}
+#define STATIC_APPLY(nargs, curr_fsz, next_fsz, dst, f, args...)        \
+  ocamlcc_static_apply(nargs, curr_fsz, next_fsz, dst, f, args)
+  /* See ocamlcc-apply.c */
 
-#define DYNAMIC_STANDARD_APPTERM(nargs, curr_fsz, args...) {            \
-  caml_extern_sp = sp;                                                  \
-  return ocamlcc_apply_##nargs(args);                                   \
-}
+#define DYNAMIC_STANDARD_APPTERM(nargs, curr_fsz, args...)      \
+  ocamlcc_dynamic_standard_appterm(nargs, curr_fsz, args)
+  /* See ocamlcc-apply.c */
 
 #define PARTIAL_STANDARD_APPTERM(nargs, curr_fsz, args...)    \
-  DYNAMIC_STANDARD_APPTERM(nargs, curr_fsz, args)
+  ocamlcc_partial_standard_appterm(nargs, curr_fsz, args)
+  /* See ocamlcc-apply.c */
 
-#define STATIC_STANDARD_APPTERM(f, args...) {           \
-  caml_extern_sp = sp;                                  \
-  return f(args);                                       \
-}
+#define STATIC_STANDARD_APPTERM(f, args...)     \
+  ocamlcc_static_standard_appterm(f, args)
+  /* See ocamlcc-apply.c */
 
-#define DYNAMIC_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args...) {   \
-  caml_extern_sp = sp;                                                  \
-  ocamlcc_tail_call_##tc_nargs((value) &ocamlcc_apply_##nargs, args);   \
-}
+#define DYNAMIC_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args...)     \
+  ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, args)
+  /* See ocamlcc-apply.c */
 
 #define PARTIAL_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args...)     \
-  DYNAMIC_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args)
+  ocamlcc_partial_special_appterm(nargs, tc_nargs, curr_fsz, args)
+  /* See ocamlcc-apply.c */
 
 #define SPECIAL_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args...)     \
-  DYNAMIC_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args)
+  ocamlcc_special_special_appterm(nargs, tc_nargs, curr_fsz, args)
+  /* See ocamlcc-apply.c */
 
-#define STATIC_SPECIAL_APPTERM(tc_nargs, f, args...) {  \
-  caml_extern_sp = sp;                                  \
-  ocamlcc_tail_call_##tc_nargs((value) &f, args);       \
-}
+#define STATIC_SPECIAL_APPTERM(tc_nargs, f, args...)    \
+  ocamlcc_static_special_appterm(tc_nargs, f, args)
+  /* See ocamlcc-apply.c */
 
-#define RETURN(src) {                           \
-  caml_extern_sp = sp;                          \
-  return (src);                                 \
-}
+#define RETURN(src)                             \
+  ocamlcc_return(src)
+  /* See ocamlcc-apply.c */
 
 
 /* Allocation of blocks */
@@ -369,19 +343,19 @@
 /* Exceptions */
 
 #define RAISE(exn)                              \
-  ocamlcc_raise(exn)
+  ocamlcc_raise(exn)                       /* See ocamlcc-exceptions.c */
 
 #define PUSHTRAP(restore_exn, lab, ukid)        \
-  ocamlcc_pushtrap(restore_exn, lab, ukid)
+  ocamlcc_pushtrap(restore_exn, lab, ukid) /* See ocamlcc-exceptions.c */
 
 #define POPTRAP(frame_sz)                       \
-  ocamlcc_poptrap(frame_sz)
+  ocamlcc_poptrap(frame_sz)                /* See ocamlcc-exceptions.c */
 
 #define SAVED_POPTRAP(to_save, frame_sz)        \
-  ocamlcc_saved_poptrap(to_save, frame_sz)
+  ocamlcc_saved_poptrap(to_save, frame_sz) /* See ocamlcc-exceptions.c */
 
 #define CATCH_EXCEPTION(lab, restore_exn)       \
-  ocamlcc_catch(lab, restore_exn)
+  ocamlcc_catch(lab, restore_exn)          /* See ocamlcc-exceptions.c */
 
 
 /* References */
@@ -427,5 +401,3 @@
 
 #define VM_STOP()                               \
   return;
-
-#endif

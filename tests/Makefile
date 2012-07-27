@@ -17,7 +17,7 @@ CS = $(BYTES:.byte=.c)
 S = $(CS:.c=)
 EXES = $(CS:.c=.exe)
 
-ARCH := $(shell arch)
+ARCH := NONE # $(shell arch)
 OCAMLC := $(shell which ocamlc)
 LIBDIR := $(shell $(OCAMLC) -where)
 OCAMLCC = ../bin/ocamlcc

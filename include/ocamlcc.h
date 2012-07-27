@@ -19,6 +19,7 @@
 #include "ocamlcc-unimpl.c"
 #include "ocamlcc-instrs.c"
 #include "ocamlcc-alloc.c"
+#include "ocamlcc-apply.c"
 #include "ocamlcc-main.c"
 #include "ocamlcc-byterun.h"
 #include "ocamlcc-otherlibs.h"

@@ -10,9 +10,6 @@
 /*                                                                       */
 /*************************************************************************/
 
-#ifndef OCAMLCC_SIGNALS_H
-#define OCAMLCC_SIGNALS_H
-
 #ifdef OCAMLCC_SIGNAL_REACTIVE
 
 #define ocamlcc_check_something_to_do(frame_sz) {                         \
@@ -51,5 +48,4 @@
 #define ocamlcc_check_something_to_do(frame_sz)
 #define ocamlcc_saved_check_something_to_do(to_save, frame_sz)
 
-#endif
 #endif

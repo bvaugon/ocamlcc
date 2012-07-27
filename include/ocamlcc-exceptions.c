@@ -10,9 +10,6 @@
 /*                                                                       */
 /*************************************************************************/
 
-#ifndef OCAMLCC_EXCEPTIONS_H
-#define OCAMLCC_EXCEPTIONS_H
-
 #ifndef __cplusplus
 
 #include <stdlib.h>
@@ -126,5 +123,3 @@ struct longjmp_buffer *ocamlcc_exception_poptrap_fun(void) {
 }
 
 #endif /* __cplusplus */
-
-#endif

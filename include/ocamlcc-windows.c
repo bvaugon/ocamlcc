@@ -10,8 +10,6 @@
 /*                                                                       */
 /*************************************************************************/
 
-#ifndef OCAMLCC_WINDOWS_H
-#define OCAMLCC_WINDOWS_H
 #ifdef __MINGW32__
 
 #include <stdio.h>
@@ -61,5 +59,4 @@ char *tgetstr(char *id, char **area){
   exit(1);
 }
 
-#endif
 #endif

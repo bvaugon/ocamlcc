@@ -10,9 +10,6 @@
 /*                                                                       */
 /*************************************************************************/
 
-#ifndef OCAMLCC_MAIN_H
-#define OCAMLCC_MAIN_H
-
 #include "ocamlcc-byterun/mlvalues.h"
 #include "ocamlcc-byterun/memory.h"
 #include "ocamlcc-byterun/stacks.h"
@@ -38,5 +35,3 @@ value ocamlcc_main() {
  end:
   CAMLreturn(result);
 }
-
-#endif

@@ -22,12 +22,16 @@ let closure_tag = Obj.closure_tag;;
 
 let export_fun_signature oc id use_env arity =
   if id = 0 then (
-    fprintf oc "void ocamlcc_bytecode_main(void)"
+    fprintf oc "void ocamlcc_bytecode_main(void)";
   ) else (
-    fprintf oc "value f%d(value p0" id;
-    for i = 1 to arity - 1 do fprintf oc ", value p%d" i; done;
-    if use_env then fprintf oc ", value env)"
-    else fprintf oc ")"
+    match !Options.arch with
+      | NO_ARCH ->
+        fprintf oc "value f%d(value p0)" id;
+      | _ ->
+        fprintf oc "value f%d(value p0" id;
+        for i = 1 to arity - 1 do fprintf oc ", value p%d" i; done;
+        if use_env then fprintf oc ", value env)"
+        else fprintf oc ")";
   );
 ;;
 
@@ -55,16 +59,32 @@ let export_fun_declarations oc use_env var_nb use_tmp =
   if use_tmp then fprintf oc "  value tmp;\n";
   fprintf oc "  value *sp;\n";
   fprintf oc "  sp = caml_extern_sp;\n";
-  if use_env then fprintf oc "  sp[-1] = env;\n";
+  if use_env then
+    match !Options.arch with
+      | NO_ARCH ->
+        fprintf oc "  sp[-1] = ocamlcc_global_env;\n";
+      | _ ->
+        fprintf oc "  sp[-1] = env;\n";
 ;;
 
 let export_fun_arg_init oc arity arg_depths =
-  for i = 0 to arity - 1 do
-    try
-      let ofs = IMap.find i arg_depths in
-      fprintf oc "  sp[%d] = p%d;\n" ofs i;
-    with Not_found -> ()
-  done
+  match !Options.arch with
+    | NO_ARCH ->
+      for i = 0 to arity - 1 do
+        try
+          let ofs = IMap.find i arg_depths in
+          fprintf oc "  sp[%d] = ocamlcc_global_params[%d];\n" ofs i;
+        with Not_found ->
+          if i <> 0 then
+            fprintf oc "  value p%d = ocamlcc_global_params[%d];\n" i i;
+      done;
+    | _ ->
+      for i = 0 to arity - 1 do
+        try
+          let ofs = IMap.find i arg_depths in
+          fprintf oc "  sp[%d] = p%d;\n" ofs i;
+        with Not_found -> ()
+      done;
 ;;
 
 let export_fun_foot oc =
@@ -730,24 +750,29 @@ let export oc prims dbug funs dzeta_code =
     export_fun_decl_signature oc id (Block.test_useenv fd)
       (Block.test_inlinable funs fd) fd.arity
   in
-    (*Printer.print_dzeta_code stdout dzeta_code;*)
+  (*Printer.print_dzeta_code stdout dzeta_code;*)
   IMap.iter f rest;
   fprintf oc "\n";
   IMap.iter (export_fun oc prims dbug funs) rest;
   export_fun oc prims dbug funs 0 main;
 ;;
 
-let run output_C_file prims data dbug funs dzeta_code fact_funs =
+let run output_C_file prims data dbug funs dzeta_code max_arity =
   Options.verb_start "+ Generating %S..." output_C_file;
   let oc = open_out output_C_file in
   if !Options.no_main then Printf.fprintf oc "#define OCAMLCC_NO_MAIN\n";
+  Printf.fprintf oc "#define OCAMLCC_GLOBAL_DATA_LENGTH %d\n"
+    (String.length data.dump);
+  Printf.fprintf oc "#define OCAMLCC_MAXIMUM_ARITY %d\n" max_arity;
   Printf.fprintf oc "#define OCAMLCC_SIGNAL_%a\n" Printer.print_sigconf
     !Options.sigconf;
-  Printf.fprintf oc "#include <ocamlcc.h>\n\n";
+  Printf.fprintf oc "#define OCAMLCC_ARCH_%a\n" Printer.print_arch
+    !Options.arch;
+  Printf.fprintf oc "\n";
   Printf.fprintf oc "#if !defined(__GNUC__)\n";
   Printf.fprintf oc
     "  #error - Incompatible code: compiler should GNU C compatible\n";
-  Printf.fprintf oc "#endif\n\n";
+  Printf.fprintf oc "#endif\n";
   begin match !Options.arch with
     | NO_ARCH -> ()
     | X86     ->
@@ -756,17 +781,20 @@ let run output_C_file prims data dbug funs dzeta_code fact_funs =
               && !defined(__i585__) && !defined(__i686__))\n";
       Printf.fprintf oc
         "  #error - Incompatible code: architecture should be x86\n";
+      Printf.fprintf oc "#endif\n\n";
     | X86_64 ->
       Printf.fprintf oc
         "#if !defined(__x86_64__)\n";
       Printf.fprintf oc
         "  #error - Incompatible code: architecture should be x86-64\n";
+      Printf.fprintf oc "#endif\n";
   end;
-  Printf.fprintf oc "#endif\n\n";
+  Printf.fprintf oc "\n";
+  Printf.fprintf oc "#include <ocamlcc.h>\n\n";
   Data.export oc data;
   Printf.fprintf oc "\n";
-  Applygen.export oc fact_funs;
+  Applygen.run oc max_arity;
   export oc prims dbug funs dzeta_code;
   close_out oc;
-  Options.verb_stop();
+  Options.verb_stop ();
 ;;

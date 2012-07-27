@@ -28,26 +28,41 @@ let test_useenv fun_desc =
 ;;
 
 let test_inlinable funs fun_desc =
-  let body = fun_desc.body in
-  let cfun_arity =
-    if test_useenv fun_desc then fun_desc.arity + 1 else fun_desc.arity
+  if !Options.arch = NO_ARCH then true else
+    let body = fun_desc.body in
+    let cfun_arity =
+      if test_useenv fun_desc then fun_desc.arity + 1 else fun_desc.arity
+    in
+    let len = Array.length body in
+    let rec f i =
+      if i = len then true else
+        match body.(i).bc with
+          | DynamicAppterm (n, _) when n >= cfun_arity -> false
+          | PartialAppterm (n, _) when n >= cfun_arity -> false
+          | StaticAppterm (n, _, ptr) ->
+            let callee_arity =
+              if test_useenv (IMap.find ptr.pointed.index funs) then n + 1
+              else n
+            in
+            if callee_arity > cfun_arity then false else f (i + 1)
+          | SpecialAppterm _ -> false
+          | _ -> f (i + 1)
+    in
+    f 0
+;;
+
+let compute_maximum_arity funs =
+  let f acc instr =
+    match instr.bc with
+      | DynamicApply n | StaticApply (n, _) | PartialApply n
+      | DynamicAppterm (n, _) | StaticAppterm (n, _, _)
+      | PartialAppterm (n, _) | SpecialAppterm (n, _) -> max acc n
+      | _ -> acc
   in
-  let len = Array.length body in
-  let rec f i =
-    if i = len then true else
-      match body.(i).bc with
-        | DynamicAppterm (n, _) when n >= cfun_arity -> false
-        | PartialAppterm (n, _) when n >= cfun_arity -> false
-        | StaticAppterm (n, _, ptr) ->
-          let callee_arity =
-            if test_useenv (IMap.find ptr.pointed.index funs) then n + 1
-            else n
-          in
-          if callee_arity > cfun_arity then false else f (i + 1)
-        | SpecialAppterm _ -> false
-        | _ -> f (i + 1)
+  let g _ fun_desc acc =
+    Array.fold_left f (max acc fun_desc.arity) fun_desc.body
   in
-  f 0
+  IMap.fold g funs 0
 ;;
 
 let compute_nexts instr =

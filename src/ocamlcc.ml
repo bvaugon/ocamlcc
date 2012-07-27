@@ -153,7 +153,8 @@ let b2c bfile cfile stop =
   Rmclsrs.run funs;
   let (dzeta_code, fun_tys) = Xconst.run prims funs in
   let fact_funs = Factfun.factor_functions funs in
-  Codegen.run cfile prims data dbug funs dzeta_code fact_funs;
+  let max_arity = Block.compute_maximum_arity fact_funs in
+  Codegen.run cfile prims data dbug funs dzeta_code max_arity;
   if !Options.stat then Stat.run stdout funs dzeta_code fun_tys;
   if stop then exit 0;
 ;;

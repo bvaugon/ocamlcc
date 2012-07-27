@@ -53,8 +53,6 @@ let export oc { values = _ ; dump = dump } =
       Printf.fprintf oc " 0x00\n";
     )
   in
-  Printf.fprintf oc "intnat ocamlcc_global_data_length = %d;\n"
-    (String.length dump);
   Printf.fprintf oc "char ocamlcc_global_data[] = {";
   f 0;
   Printf.fprintf oc "};\n";
