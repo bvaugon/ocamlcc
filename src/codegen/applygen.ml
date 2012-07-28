@@ -25,7 +25,7 @@ module X_ALL = struct
     done;
     fprintf oc " value env);\n";
   ;;
-  
+
   let gen_fun_apply oc n max_arity =
     fprintf oc "value ocamlcc_apply_%d(value arg1" n;
     for i = 2 to n do fprintf oc ", value arg%d" i done;
@@ -75,7 +75,7 @@ module X_ALL = struct
         fprintf oc "      long i;\n";
         fprintf oc "      value new_closure;\n";
         fprintf oc
-          "      Ocamlcc_alloc_small(new_closure, total_passed + 1, Closure_tag,\n";
+     "      Ocamlcc_alloc_small(new_closure, total_passed + 1, Closure_tag,\n";
         fprintf oc "        *--caml_extern_sp = closure;\n";
         for i = 1 to n do
           fprintf oc "        *--caml_extern_sp = arg%d;\n" i;
@@ -112,7 +112,8 @@ module X_ALL = struct
       if n > 1 then fprintf oc "  } else if (arity > %d) {\n" n
       else fprintf oc "  } else {\n";
       fprintf oc "    value new_closure;\n";
-      fprintf oc "    Ocamlcc_alloc_small(new_closure, %d, Closure_tag,\n" (n+1);
+      fprintf oc
+        "    Ocamlcc_alloc_small(new_closure, %d, Closure_tag,\n" (n+1);
       fprintf oc "      *--caml_extern_sp = arg1;\n";
       fprintf oc "      *--caml_extern_sp = closure;\n";
       for i = 2 to n do
@@ -208,12 +209,12 @@ module NO_ARCH = struct
     fprintf oc ") { \\\n";
     if n >= 3 then (
       fprintf oc "  ocamlcc_store_args_%d(a2" (n - 1);
-      
+
       for i = 3 to n - 1 do fprintf oc ", a%d" i done;
       fprintf oc "); \\\n"
     );
     if n >= 2 then (
-      fprintf oc "  ocamlcc_global_params[%d] = a%d; \\\n" (n - 1) n;
+      fprintf oc "  ocamlcc_global_params[%d] = a%d; \\\n" (n - 2) n;
     );
     fprintf oc "}\n\n";
   ;;

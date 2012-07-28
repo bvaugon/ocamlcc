@@ -25,5 +25,5 @@ tests/takc
 tests/termtrap
 tests/ocamlc
 tests/flocon
-tests/bug
+tests/wscope
 trash/

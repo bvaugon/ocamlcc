@@ -73,10 +73,13 @@ let export_fun_arg_init oc arity arg_depths =
       for i = 0 to arity - 1 do
         try
           let ofs = IMap.find i arg_depths in
-          fprintf oc "  sp[%d] = ocamlcc_global_params[%d];\n" ofs i;
+          if i = 0 then
+            fprintf oc "  sp[%d] = p0;\n" ofs
+          else
+            fprintf oc "  sp[%d] = ocamlcc_global_params[%d];\n" ofs (i - 1);
         with Not_found ->
           if i <> 0 then
-            fprintf oc "  value p%d = ocamlcc_global_params[%d];\n" i i;
+            fprintf oc "  value p%d = ocamlcc_global_params[%d];\n" i (i - 1);
       done;
     | _ ->
       for i = 0 to arity - 1 do
@@ -398,16 +401,22 @@ let export_fun oc prims dbug funs fun_id
               callee_nargs > cfun_arity &&
                 (!Options.arch <> X86_64 || callee_nargs > 6)
             then
-              fprintf oc "  STATIC_SPECIAL_APPTERM(%d, " callee_nargs
+              fprintf oc "  STATIC_SPECIAL_APPTERM(%d, %d, " nargs callee_nargs
             else
-              fprintf oc "  STATIC_STANDARD_APPTERM(";
+              fprintf oc "  STATIC_STANDARD_APPTERM(%d, " nargs;
             fprintf oc "f%d" ptr.pointed.index;
           | _ -> assert false
         end;
+        if !Options.arch = NO_ARCH then
+          if !print_env then
+            fprintf oc ", %a" export_val_desc clsr_id
+          else
+            fprintf oc ", Val_unit";
         for i = 0 to nargs - 1 do
           fprintf oc ", %a" export_val_desc (get_stack_id ind i);
         done;
-        if !print_env then fprintf oc ", %a" export_val_desc clsr_id;
+        if !print_env && !Options.arch <> NO_ARCH then
+          fprintf oc ", %a" export_val_desc clsr_id;
         fprintf oc ");\n";
       | Return _ ->
         if !Options.trace then
