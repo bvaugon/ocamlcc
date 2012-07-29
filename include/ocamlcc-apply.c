@@ -20,6 +20,8 @@
 
 typedef value (*ocamlcc_fun)(value arg1);
 
+value ocamlcc_global_arg_nb_val;
+value ocamlcc_global_closure;
 value ocamlcc_global_env;
 value ocamlcc_global_params[OCAMLCC_MAXIMUM_ARITY - 1];
 
@@ -40,7 +42,9 @@ value ocamlcc_global_params[OCAMLCC_MAXIMUM_ARITY - 1];
   sp = caml_extern_sp + next_fsz;                                         \
 }
 
-value ocamlcc_generic_apply(value arg_nb_val, value arg1, value closure) {
+value ocamlcc_generic_apply(value arg1) {
+  value arg_nb_val = ocamlcc_global_arg_nb_val;
+  value closure = ocamlcc_global_closure;
   value arity_val = Field(closure, 1);
   long arity = Long_val(arity_val);
   long arg_nb = Long_val(arg_nb_val);
@@ -90,10 +94,12 @@ value ocamlcc_generic_apply(value arg_nb_val, value arg1, value closure) {
       return new_closure;
 
     } else {
-      value new_closure;
       *--caml_extern_sp = ocamlcc_global_params[arg_nb - 2];
-      new_closure = ocamlcc_generic_apply(Val_long(arg_nb - 1), arg1, closure);
-      return ocamlcc_generic_apply(Val_long(1), *caml_extern_sp++, new_closure);
+      ocamlcc_global_arg_nb_val = Val_long(arg_nb - 1);
+      ocamlcc_global_closure = closure;
+      ocamlcc_global_closure = ocamlcc_generic_apply(arg1);
+      ocamlcc_global_arg_nb_val = Val_long(1);
+      return ocamlcc_generic_apply(*caml_extern_sp++);
     }
 
   } else if (arg_nb_val < arity_val) {
@@ -118,15 +124,14 @@ value ocamlcc_generic_apply(value arg_nb_val, value arg1, value closure) {
 
   } else {
     long i;
-    value new_closure;
     for (i = arity - 1 ; i < arg_nb - 1 ; i ++)
       *--caml_extern_sp = ocamlcc_global_params[i];
     ocamlcc_global_env = closure;
-    new_closure = ((ocamlcc_fun) Field(closure, 0))(arg1);
+    ocamlcc_global_closure = ((ocamlcc_fun) Field(closure, 0))(arg1);
     for (i = arg_nb - arity - 2 ; i >= 0 ; i --)
       ocamlcc_global_params[i] = *caml_extern_sp++;
-    return ocamlcc_generic_apply(Val_long(arg_nb - arity), *caml_extern_sp++,
-                                 new_closure);
+    ocamlcc_global_arg_nb_val = Val_long(arg_nb - arity);
+    return ocamlcc_generic_apply(*caml_extern_sp++);
   }
 }
 
@@ -138,7 +143,9 @@ value ocamlcc_apply_gen(value closure, long nargs, value args[]) {
   }
   for(i = 1 ; i < nargs ; i ++)
     ocamlcc_global_params[i - 1] = args[i];
-  return ocamlcc_generic_apply(Val_long(nargs), args[0], closure);
+  ocamlcc_global_arg_nb_val = Val_long(nargs);
+  ocamlcc_global_closure = closure;
+  return ocamlcc_generic_apply(args[0]);
 }
 
 /***/
@@ -147,7 +154,9 @@ value ocamlcc_apply_gen(value closure, long nargs, value args[]) {
                               arg1, rest...) {                          \
   ocamlcc_apply_init_stack(curr_fsz, next_fsz);                         \
   ocamlcc_store_args_##nargs(rest);                                     \
-  dst ocamlcc_generic_apply(Val_long(nargs), arg1, env);                \
+  ocamlcc_global_arg_nb_val = Val_long(nargs);                          \
+  ocamlcc_global_closure = env;                                         \
+  dst ocamlcc_generic_apply(arg1);                                      \
   ocamlcc_apply_restore_stack(next_fsz);                                \
 }
 
@@ -170,7 +179,9 @@ value ocamlcc_apply_gen(value closure, long nargs, value args[]) {
                                          arg1, rest...) {               \
   caml_extern_sp = sp;                                                  \
   ocamlcc_store_args_##nargs(rest);                                     \
-  return ocamlcc_generic_apply(Val_long(nargs), arg1, env);             \
+  ocamlcc_global_arg_nb_val = Val_long(nargs);                          \
+  ocamlcc_global_closure = env;                                         \
+  return ocamlcc_generic_apply(arg1);                                   \
 }
 
 #define ocamlcc_partial_standard_appterm(nargs, curr_fsz, env,          \
