@@ -46,30 +46,36 @@ let export_fun_def_signature oc id use_env arity =
   fprintf oc " {\n";
 ;;
 
-let export_fun_declarations oc use_env var_nb use_tmp =
+let export_fun_declarations oc arity var_nb use_tmp arg_depths =
   let cnt = ref 0 in
-  let print id =
+  let print c id =
     incr cnt;
-    if !cnt = 1 then fprintf oc "  value v%d" id
-    else if !cnt = 8 then (cnt := 0 ; fprintf oc ", v%d;\n" id)
-    else fprintf oc ", v%d" id
+    if !cnt = 1 then fprintf oc "  value %c%d" c id
+    else if !cnt = 8 then (cnt := 0 ; fprintf oc ", %c%d;\n" c id)
+    else fprintf oc ", %c%d" c id
   in
-  for i = 0 to var_nb - 1 do print i done;
+  begin match !Options.arch with
+    | NO_ARCH ->
+      for i = 1 to arity - 1 do
+        if not (IMap.mem i arg_depths) then print 'p' i;
+      done;
+      if !cnt <> 0 then (
+        cnt := 0;
+        fprintf oc ";\n";
+      );
+    | _ -> ()
+  end;
+  for i = 0 to var_nb - 1 do print 'v' i done;
   if !cnt <> 0 then fprintf oc ";\n";
   if use_tmp then fprintf oc "  value tmp;\n";
   fprintf oc "  value *sp;\n";
-  fprintf oc "  sp = caml_extern_sp;\n";
-  if use_env then
-    match !Options.arch with
-      | NO_ARCH ->
-        fprintf oc "  sp[-1] = ocamlcc_global_env;\n";
-      | _ ->
-        fprintf oc "  sp[-1] = env;\n";
 ;;
 
-let export_fun_arg_init oc arity arg_depths =
+let export_fun_init oc use_env arity arg_depths =
+  fprintf oc "  sp = caml_extern_sp;\n";
   match !Options.arch with
     | NO_ARCH ->
+      if use_env then fprintf oc "  sp[-1] = ocamlcc_global_env;\n";
       for i = 0 to arity - 1 do
         try
           let ofs = IMap.find i arg_depths in
@@ -79,9 +85,10 @@ let export_fun_arg_init oc arity arg_depths =
             fprintf oc "  sp[%d] = ocamlcc_global_params[%d];\n" ofs (i - 1);
         with Not_found ->
           if i <> 0 then
-            fprintf oc "  value p%d = ocamlcc_global_params[%d];\n" i (i - 1);
+            fprintf oc "  p%d = ocamlcc_global_params[%d];\n" i (i - 1);
       done;
     | _ ->
+      if use_env then fprintf oc "  sp[-1] = env;\n";
       for i = 0 to arity - 1 do
         try
           let ofs = IMap.find i arg_depths in
@@ -745,8 +752,8 @@ let export_fun oc prims dbug funs fun_id
   export_fun_def_signature oc fun_id use_env fun_desc.arity;
   if !Options.trace && fun_id <> 0 then
     fprintf oc "  printf(\"--> f%d\\n\");\n" fun_id;
-  export_fun_declarations oc use_env var_nb use_tmp;
-  export_fun_arg_init oc fun_desc.arity arg_depths;
+  export_fun_declarations oc fun_desc.arity var_nb use_tmp arg_depths;
+  export_fun_init oc use_env fun_desc.arity arg_depths;
   Array.iteri export_instr body;
   export_fun_foot oc;
   assert (!catch_list = []);
