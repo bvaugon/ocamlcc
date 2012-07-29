@@ -299,19 +299,19 @@ void caml_debugger(enum event_kind event)
     case REQ_SET_EVENT:
       pos = caml_getword(dbg_in);
       Assert (pos >= 0);
-      Assert (pos < caml_code_size);
+      Assert (((asize_t) pos) < caml_code_size);
       caml_set_instruction(caml_start_code + pos / sizeof(opcode_t), EVENT);
       break;
     case REQ_SET_BREAKPOINT:
       pos = caml_getword(dbg_in);
       Assert (pos >= 0);
-      Assert (pos < caml_code_size);
+      Assert (((asize_t) pos) < caml_code_size);
       caml_set_instruction(caml_start_code + pos / sizeof(opcode_t), BREAK);
       break;
     case REQ_RESET_INSTR:
       pos = caml_getword(dbg_in);
       Assert (pos >= 0);
-      Assert (pos < caml_code_size);
+      Assert (((asize_t) pos) < caml_code_size);
       pos = pos / sizeof(opcode_t);
       caml_set_instruction(caml_start_code + pos, caml_saved_code[pos]);
       break;
