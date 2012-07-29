@@ -18,19 +18,13 @@ void ocamlcc_dynlink_error(void) {
   caml_failwith("OCamlCC: dynlink not implemented");
 }
 
-CAMLprim value caml_dynlink_get_current_libs(value unit) {
+CAMLprim value caml_reify_bytecode(value prog, value len) {
   ocamlcc_dynlink_error();
 }
-CAMLprim value caml_dynlink_add_primitive(value handle) {
+CAMLprim value caml_get_current_environment(value unit) {
   ocamlcc_dynlink_error();
 }
-CAMLprim value caml_dynlink_lookup_symbol(value handle, value symbolname) {
-  ocamlcc_dynlink_error();
-}
-CAMLprim value caml_dynlink_close_lib(value handle) {
-  ocamlcc_dynlink_error();
-}
-CAMLprim value caml_dynlink_open_lib(value mode, value filename) {
+CAMLprim value caml_invoke_traced_function(value codeptr, value env, value arg){
   ocamlcc_dynlink_error();
 }
 CAMLprim value caml_get_global_data(value unit) {

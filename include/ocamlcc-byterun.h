@@ -17,6 +17,7 @@
 #include "ocamlcc-byterun/debugger.c"
 #include "ocamlcc-byterun/backtrace.c"
 #include "ocamlcc-byterun/callback.c"
+#include "ocamlcc-byterun/dynlink.c"
 #include "ocamlcc-byterun/fail.c"
 #include "ocamlcc-byterun/fix_code.c"
 #include "ocamlcc-byterun/major_gc.c"
@@ -46,6 +47,7 @@
 #include "ocamlcc-byterun/custom.c"
 #include "ocamlcc-byterun/roots.c"
 #include "ocamlcc-byterun/startup.c"
+#include "ocamlcc-byterun/prims.c"
 #include "ocamlcc-byterun/printexc.c"
 #include "ocamlcc-byterun/globroots.c"
 #ifndef __MINGW32__
