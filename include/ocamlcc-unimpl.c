@@ -24,7 +24,8 @@ CAMLprim value caml_reify_bytecode(value prog, value len) {
 CAMLprim value caml_get_current_environment(value unit) {
   ocamlcc_dynlink_error();
 }
-CAMLprim value caml_invoke_traced_function(value codeptr, value env, value arg){
+CAMLprim value caml_invoke_traced_function(value codeptr, value env,
+                                           value arg) {
   ocamlcc_dynlink_error();
 }
 CAMLprim value caml_get_global_data(value unit) {
