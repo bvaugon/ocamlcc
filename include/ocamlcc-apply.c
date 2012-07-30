@@ -205,6 +205,17 @@ value ocamlcc_apply_gen(value closure, long nargs, value args[]) {
                                         arg1, rest...)                  \
   ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, env, arg1, rest)
 
+#define ocamlcc_static_special_appterm(nargs, tc_nargs, f, env, \
+                                       arg1, rest...)           \
+  ocamlcc_static_standard_appterm(nargs, f, env, arg1, rest)
+
+#define ocamlcc_return(src) {                   \
+  caml_extern_sp = sp;                          \
+  return (src);                                 \
+}
+
+#ifdef OCAMLCC_EXCEPTION_SETJMP
+
 #define ocamlcc_special_special_appterm(nargs, tc_nargs, curr_fsz, env, \
                                         arg1, rest...) {                \
   caml_extern_sp = sp;                                                  \
@@ -215,24 +226,26 @@ value ocamlcc_apply_gen(value closure, long nargs, value args[]) {
   return (value) NULL;                                                  \
 }
 
-#define ocamlcc_static_special_appterm(nargs, tc_nargs, f, env, \
-                                       arg1, rest...)           \
-  ocamlcc_static_standard_appterm(nargs, f, env, arg1, rest)
-
-#define ocamlcc_return(src) {                   \
-  caml_extern_sp = sp;                          \
-  return (src);                                 \
-}
-
-#define OCAMLCC_SPECIAL_TAIL_CALL_HEADER value body(value p0) {
-
-#define OCAMLCC_SPECIAL_TAIL_CALL_FOOT }                                \
-  value ocamlcc_stc_result = body(p0);                                  \
+#define OCAMLCC_SPECIAL_TAIL_CALL_HEADER(id)                            \
+  value f##id##_body(value p0);                                         \
+  value ocamlcc_stc_result = f##id##_body(p0);                          \
   if (ocamlcc_stc_result == (value) NULL) {                             \
     return ocamlcc_generic_apply(ocamlcc_global_special_arg1);          \
   } else {                                                              \
     return ocamlcc_stc_result;                                          \
-  }
+  }                                                                     \
+}                                                                       \
+  value f##id##_body(value p0) {
+
+#else /* OCAMLCC_EXCEPTION_SETJMP */
+
+#define ocamlcc_special_special_appterm(nargs, tc_nargs, curr_fsz, env, \
+                                        arg1, rest...)                  \
+  ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, env, arg1, rest)
+
+#define OCAMLCC_SPECIAL_TAIL_CALL_HEADER(id)
+
+#endif /* OCAMLCC_EXCEPTION_SETJMP */
 
 #else /* OCAMLCC_ARCH_NONE */
 
@@ -305,8 +318,6 @@ value ocamlcc_apply_gen(value closure, long nargs, value args[]) {
   return (src);                                 \
 }
 
-#define OCAMLCC_SPECIAL_TAIL_CALL_HEADER
-
-#define OCAMLCC_SPECIAL_TAIL_CALL_FOOT
+#define OCAMLCC_SPECIAL_TAIL_CALL_HEADER(id)
 
 #endif /* OCAMLCC_ARCH_NONE */
