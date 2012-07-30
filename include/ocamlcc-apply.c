@@ -20,10 +20,11 @@
 
 typedef value (*ocamlcc_fun)(value arg1);
 
+value ocamlcc_global_params[OCAMLCC_MAXIMUM_ARITY - 1];
+value ocamlcc_global_special_arg1;
 value ocamlcc_global_arg_nb_val;
 value ocamlcc_global_closure;
 value ocamlcc_global_env;
-value ocamlcc_global_params[OCAMLCC_MAXIMUM_ARITY - 1];
 
 #define ocamlcc_apply_init_stack(curr_fsz, next_fsz) {                    \
   if (next_fsz != 0) {                                                    \
@@ -205,8 +206,14 @@ value ocamlcc_apply_gen(value closure, long nargs, value args[]) {
   ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, env, arg1, rest)
 
 #define ocamlcc_special_special_appterm(nargs, tc_nargs, curr_fsz, env, \
-                                        arg1, rest...)                  \
-  ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, env, arg1, rest)
+                                        arg1, rest...) {                \
+  caml_extern_sp = sp;                                                  \
+  ocamlcc_store_args_##nargs(rest);                                     \
+  ocamlcc_global_arg_nb_val = Val_long(nargs);                          \
+  ocamlcc_global_closure = env;                                         \
+  ocamlcc_global_special_arg1 = arg1;                                   \
+  return (value) NULL;                                                  \
+}
 
 #define ocamlcc_static_special_appterm(nargs, tc_nargs, f, env, \
                                        arg1, rest...)           \
@@ -216,6 +223,16 @@ value ocamlcc_apply_gen(value closure, long nargs, value args[]) {
   caml_extern_sp = sp;                          \
   return (src);                                 \
 }
+
+#define OCAMLCC_SPECIAL_TAIL_CALL_HEADER value body(value p0) {
+
+#define OCAMLCC_SPECIAL_TAIL_CALL_FOOT }                                \
+  value ocamlcc_stc_result = body(p0);                                  \
+  if (ocamlcc_stc_result == (value) NULL) {                             \
+    return ocamlcc_generic_apply(ocamlcc_global_special_arg1);          \
+  } else {                                                              \
+    return ocamlcc_stc_result;                                          \
+  }
 
 #else /* OCAMLCC_ARCH_NONE */
 
@@ -287,5 +304,9 @@ value ocamlcc_apply_gen(value closure, long nargs, value args[]) {
   caml_extern_sp = sp;                          \
   return (src);                                 \
 }
+
+#define OCAMLCC_SPECIAL_TAIL_CALL_HEADER
+
+#define OCAMLCC_SPECIAL_TAIL_CALL_FOOT
 
 #endif /* OCAMLCC_ARCH_NONE */
