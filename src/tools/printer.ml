@@ -14,17 +14,23 @@ open Printf
 open Types
 open Tools
 
+let print_arch oc arch =
+  match arch with
+    | NO_ARCH -> output_string oc "NONE"
+    | X86 -> output_string oc "X86"
+    | X86_64 -> output_string oc "X86_64"
+;;
+
 let print_sigconf oc sigconf =
   match sigconf with
     | Efficient -> output_string oc "EFFICIENT"
     | Reactive -> output_string oc "REACTIVE"
 ;;
 
-let print_arch oc arch =
-  match arch with
-    | NO_ARCH -> output_string oc "NONE"
-    | X86 -> output_string oc "X86"
-    | X86_64 -> output_string oc "X86_64"
+let print_except oc except =
+  match except with
+    | Setjmp -> output_string oc "SETJMP"
+    | Trycatch -> output_string oc "TRY_CATCH"
 ;;
 
 let print_index oc index =

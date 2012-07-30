@@ -10,7 +10,7 @@
 /*                                                                       */
 /*************************************************************************/
 
-#ifndef __cplusplus
+#ifdef OCAMLCC_EXCEPTION_SETJMP
 
 #include <stdlib.h>
 #include "ocamlcc-byterun/fail.h"
@@ -94,7 +94,11 @@ struct longjmp_buffer *ocamlcc_exception_poptrap_fun(void) {
 #define ocamlcc_catch(lab, restore_exn)         \
   lab:
 
-#else /* __cplusplus */
+#else /* OCAMLCC_EXCEPTION_SETJMP */
+
+#ifndef __cplusplus
+  #error - Incompatible code: compiler should support C++ try-catch mechanism
+#endif
 
 #define ocamlcc_exception_init()
 
@@ -122,4 +126,4 @@ struct longjmp_buffer *ocamlcc_exception_poptrap_fun(void) {
   }                                                                     \
 }
 
-#endif /* __cplusplus */
+#endif /* OCAMLCC_EXCEPTION_SETJMP */

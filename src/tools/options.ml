@@ -20,8 +20,9 @@ let only_generate_C = ref false;;
 let keep_C_file = ref false;;
 let output_file : string option ref = ref None;;
 let input_file : string option ref = ref None;;
-let sigconf = ref Efficient;;
 let arch = ref NO_ARCH;;
+let sigconf = ref Efficient;;
+let except = ref Setjmp;;
 let ccomp = ref Config.ccomp;;
 
 let offset_counter = ref 0;;
@@ -83,6 +84,13 @@ let sigconf_of_string s =
     | _ -> invalid_arg "sigconf_of_string"
 ;;
 
+let except_of_string s =
+  match String.lowercase s with
+    | "s" | "setjmp" -> Setjmp
+    | "t" | "try-catch" -> Trycatch
+    | _ -> invalid_arg "except_of_string"
+;;
+
 try arch := arch_of_string Config.default_arch
 with Invalid_argument _ -> arch := NO_ARCH;;
 
@@ -91,7 +99,7 @@ let default_arch = string_of_arch !arch;;
 let arch_option_doc =
   let all_archs = [| NO_ARCH ; X86 ; X86_64 |] in
   let buf = Buffer.create 16 in
-  Printf.bprintf buf "<x> Define the target architecture [ ";
+  Printf.bprintf buf "<x> Define target architecture [ ";
   Array.iteri (fun i a ->
     if i <> 0 then Printf.bprintf buf " | ";
     Printf.bprintf buf "%s" (string_of_arch a);

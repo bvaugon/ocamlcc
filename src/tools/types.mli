@@ -10,9 +10,11 @@
 (*                                                                       *)
 (*************************************************************************)
 
+type arch = NO_ARCH | X86 | X86_64
+
 type sigconf = Reactive | Efficient
 
-type arch = NO_ARCH | X86 | X86_64
+type except = Setjmp | Trycatch
 
 type section = Code | Dlpt | Dlls | Prim | Data | Symb | Crcs | Dbug
 

@@ -15,8 +15,9 @@ open Types;;
 
 Printexc.record_backtrace true;;
 
-let set_sigconf = ref (fun _ -> ());;
 let set_arch = ref (fun _ -> ());;
+let set_sigconf = ref (fun _ -> ());;
+let set_exception = ref (fun _ -> ());;
 
 (***)
 
@@ -36,6 +37,8 @@ let spec =
      Options.arch_option_doc);
     ("-signal", Arg.String (fun s -> !set_sigconf s),
      "<x> Define signal reactivity [ R[eactive] | E[fficient] (default) ]");
+    ("-exception", Arg.String (fun s -> !set_exception s),
+     "<x> Define exception mechanism [ S[etjmp] (default) | T[ry-catch] ]");
     ("-trace", Arg.Set Options.trace,
      " Generate additional C code to trace execution");
     ("-no-main", Arg.Set Options.no_main,
@@ -79,16 +82,21 @@ let unknow arg =
 (***)
 
 let () = begin
-  set_sigconf :=
-    (fun s ->
-      try Options.sigconf := Options.sigconf_of_string s
-      with Invalid_argument _ ->
-        error "invalid signal configuration: %S" s);
   set_arch :=
     (fun s ->
       try Options.arch := Options.arch_of_string s
       with Invalid_argument _ ->
         error "invalid target architecture: %S" s);
+  set_sigconf :=
+    (fun s ->
+      try Options.sigconf := Options.sigconf_of_string s
+      with Invalid_argument _ ->
+        error "invalid signal configuration: %S" s);
+  set_exception :=
+    (fun s ->
+      try Options.except := Options.except_of_string s
+      with Invalid_argument _ ->
+        error "invalid exception configuration: %S" s);
   Arg.parse spec unknow usage;
 end;;
 

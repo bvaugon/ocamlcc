@@ -780,14 +780,16 @@ let run output_C_file prims data dbug funs dzeta_code max_arity =
   Printf.fprintf oc "#define OCAMLCC_GLOBAL_DATA_LENGTH %d\n"
     (String.length data.dump);
   Printf.fprintf oc "#define OCAMLCC_MAXIMUM_ARITY %d\n" max_arity;
-  Printf.fprintf oc "#define OCAMLCC_SIGNAL_%a\n" Printer.print_sigconf
-    !Options.sigconf;
   Printf.fprintf oc "#define OCAMLCC_ARCH_%a\n" Printer.print_arch
     !Options.arch;
+  Printf.fprintf oc "#define OCAMLCC_SIGNAL_%a\n" Printer.print_sigconf
+    !Options.sigconf;
+  Printf.fprintf oc "#define OCAMLCC_EXCEPTION_%a\n" Printer.print_except
+    !Options.except;
   Printf.fprintf oc "\n";
   Printf.fprintf oc "#if !defined(__GNUC__)\n";
   Printf.fprintf oc
-    "  #error - Incompatible code: compiler should GNU C compatible\n";
+    "  #error - Incompatible code: compiler should be GNU C compatible\n";
   Printf.fprintf oc "#endif\n";
   begin match !Options.arch with
     | NO_ARCH -> ()
