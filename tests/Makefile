@@ -10,20 +10,6 @@
 ##                                                                       ##
 ###########################################################################
 
-MLS = $(wildcard *.ml)
-BYTES = $(MLS:.ml=.byte)
-NATIVES = $(MLS:.ml=.native)
-CS = $(BYTES:.byte=.c)
-NXCCS = $(BYTES:.byte=-nxc.c)
-ARCHCS = $(BYTES:.byte=-arch.c)
-NXCARCHCS = $(BYTES:.byte=-nxc-arch.c)
-S = $(CS:.c=)
-NXCS=$(NXCCS:.c=)
-ARCHS=$(ARCHCS:.c=)
-NXCARCHS=$(NXCARCHCS:.c=)
-
-###
-
 ARCH := $(shell arch)
 OCAMLC := $(shell which ocamlc)
 LIBDIR := $(shell $(OCAMLC) -where)
@@ -34,8 +20,50 @@ CC_FLAGS = -O3 -Wall -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E
 
 ###
 
+MLS = $(wildcard *.ml)
+BYTES = $(MLS:.ml=.byte)
+NATIVES = $(MLS:.ml=.native)
+CS = $(BYTES:.byte=.c)
+NXCCS = $(BYTES:.byte=-nxc.c)
+ARCHCS = $(BYTES:.byte=-$(ARCH).c)
+NXCARCHCS = $(BYTES:.byte=-nxc-$(ARCH).c)
+S = $(CS:.c=)
+NXCS=$(NXCCS:.c=)
+ARCHS=$(ARCHCS:.c=)
+NXCARCHS=$(NXCARCHCS:.c=)
+
+###
+
+ifeq ($(ARCH), i386)
+MANAGED_ARCH=true
+else
+ifeq ($(ARCH), i486)
+MANAGED_ARCH=true
+else
+ifeq ($(ARCH), i586)
+MANAGED_ARCH=true
+else
+ifeq ($(ARCH), i686)
+MANAGED_ARCH=true
+else
+ifeq ($(ARCH), x86_64)
+MANAGED_ARCH=true
+else
+MANAGED_ARCH=false
+endif
+endif
+endif
+endif
+endif
+
+###
+
+ifeq ($(MANAGED_ARCH), true)
 TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NXCCS) $(NXCS) $(ARCHCS) $(ARCHS) \
 	$(NXCARCHCS) $(NXCARCHS)
+else
+TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NXCCS) $(NXCS)
+endif
 
 ###
 
@@ -59,10 +87,10 @@ check-project:
 %-nxc.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch NONE -no-xconst $< -o $@
 
-%-arch.c: %.byte check-project
+%-$(ARCH).c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
 
-%-nxc-arch.c: %.byte check-project
+%-nxc-$(ARCH).c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
 
 %: %.c check-project
@@ -81,9 +109,18 @@ flocon.native: flocon.ml
 	ocamlopt -verbose unix.cmxa graphics.cmxa $< -o $@
 
 flocon.c: flocon.byte check-project
-	$(OCAMLCC) -signal R -c -verbose -stat -arch $(ARCH) $<
+	$(OCAMLCC) -signal R -c -verbose -stat -arch NONE $<
 
-flocon: flocon.c check-project
+flocon-nxc.c: flocon.byte check-project
+	$(OCAMLCC) -signal R -c -verbose -stat -arch NONE -no-xconst $< -o $@
+
+flocon-$(ARCH).c: flocon.byte check-project
+	$(OCAMLCC) -signal R -c -verbose -stat -arch $(ARCH) $< -o $@
+
+flocon-nxc-$(ARCH).c: flocon.byte check-project
+	$(OCAMLCC) -signal R -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
+
+flocon%: flocon%.c check-project
 	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -L $(LIBDIR) \
 	  $(LIBDIR)/unix.a $(LIBDIR)/graphics.a -lgraphics -lX11 -lunix
 

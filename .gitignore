@@ -10,10 +10,12 @@ tests/*.cmx
 tests/*.native
 tests/*.o
 tests/*.c
-tests/*-nxc.c
 tests/*-nxc
-tests/*-arch.c
-tests/*-arch
+tests/*-i386
+tests/*-i486
+tests/*-i586
+tests/*-i686
+tests/*-x86_64
 tests/extexn
 tests/fact
 tests/fibo
