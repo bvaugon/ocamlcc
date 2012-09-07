@@ -662,7 +662,7 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
     ISet.inter (ISet.union !ptr_read_set !int_read_set) cell_set
   in
       (* Remark: if id is not read then id is not a pointer or not a variable. *)
-  (ptr_set, read_set, ptr_res)
+  ((if !Options.no_xconst then ISet.empty else ptr_set), read_set, ptr_res)
 ;;
 
 let run prims funs =
