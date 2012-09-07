@@ -10,7 +10,10 @@ tests/*.cmx
 tests/*.native
 tests/*.o
 tests/*.c
-tests/*-no-xconst*
+tests/*-nxc.c
+tests/*-nxc
+tests/*-arch.c
+tests/*-arch
 tests/extexn
 tests/fact
 tests/fibo

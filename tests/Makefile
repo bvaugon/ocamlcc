@@ -14,13 +14,17 @@ MLS = $(wildcard *.ml)
 BYTES = $(MLS:.ml=.byte)
 NATIVES = $(MLS:.ml=.native)
 CS = $(BYTES:.byte=.c)
+NXCCS = $(BYTES:.byte=-nxc.c)
+ARCHCS = $(BYTES:.byte=-arch.c)
+NXCARCHCS = $(BYTES:.byte=-nxc-arch.c)
 S = $(CS:.c=)
-NXCS = $(BYTES:.byte=-no-xconst.c)
-NXS=$(NXCS:.c=)
+NXCS=$(NXCCS:.c=)
+ARCHS=$(ARCHCS:.c=)
+NXCARCHS=$(NXCARCHCS:.c=)
 
 ###
 
-ARCH := NONE # $(shell arch)
+ARCH := $(shell arch)
 OCAMLC := $(shell which ocamlc)
 LIBDIR := $(shell $(OCAMLC) -where)
 OCAMLCC = ../bin/ocamlcc
@@ -30,7 +34,8 @@ CC_FLAGS = -O3 -Wall -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E
 
 ###
 
-TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NXCS) $(NXS)
+TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NXCCS) $(NXCS) $(ARCHCS) $(ARCHS) \
+	$(NXCARCHCS) $(NXCARCHS)
 
 ###
 
@@ -49,9 +54,15 @@ check-project:
 	ocamlopt $< -o $@
 
 %.c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $<
+	$(OCAMLCC) -c -verbose -stat -arch NONE $<
 
-%-no-xconst.c: %.byte check-project
+%-nxc.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch NONE -no-xconst $< -o $@
+
+%-arch.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
+
+%-nxc-arch.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
 
 %: %.c check-project

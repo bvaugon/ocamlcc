@@ -655,14 +655,20 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
     IMap.fold f idvd_map ISet.empty
   in
   let ptr_set =
-    ISet.diff (ISet.inter (ISet.inter !ptr_write_set !ptr_read_set)
-                 (ISet.union (ISet.inter gc_read cell_set) arg_set)) !int_set
+    if !Options.no_xconst then
+      List.fold_left ISet.union ISet.empty [
+        !int_set; !return_set; !int_read_set; !int_write_set; !ptr_read_set;
+        !ptr_write_set;
+      ]
+    else
+      ISet.diff (ISet.inter (ISet.inter !ptr_write_set !ptr_read_set)
+                   (ISet.union (ISet.inter gc_read cell_set) arg_set)) !int_set
   in
   let read_set =
     ISet.inter (ISet.union !ptr_read_set !int_read_set) cell_set
   in
-      (* Remark: if id is not read then id is not a pointer or not a variable. *)
-  ((if !Options.no_xconst then ISet.empty else ptr_set), read_set, ptr_res)
+  (* Remark: if id is not read then id is not a pointer or not a variable. *)
+  (ptr_set, read_set, ptr_res)
 ;;
 
 let run prims funs =
