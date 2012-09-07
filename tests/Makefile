@@ -15,7 +15,10 @@ BYTES = $(MLS:.ml=.byte)
 NATIVES = $(MLS:.ml=.native)
 CS = $(BYTES:.byte=.c)
 S = $(CS:.c=)
-EXES = $(CS:.c=.exe)
+NXCS = $(BYTES:.byte=-no-xconst.c)
+NXS=$(NXCS:.c=)
+
+###
 
 ARCH := NONE # $(shell arch)
 OCAMLC := $(shell which ocamlc)
@@ -25,12 +28,18 @@ CC = gcc
 CC_INCLUDES = -I ../etc -I ../include -I ../include/ocamlcc-byterun
 CC_FLAGS = -O3 -Wall -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E
 
-TARGS = $(BYTES) $(NATIVES) $(CS) $(S) # $(EXES)
+###
+
+TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NXCS) $(NXS)
+
+###
 
 tests: $(TARGS)
 
 check-project:
 	@make --no-print-directory -C .. all
+
+###
 
 %.byte: %.ml
 	ocamlc -g $< -o $@
@@ -42,8 +51,13 @@ check-project:
 %.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $<
 
+%-no-xconst.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
+
 %: %.c check-project
 	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS)
+
+###
 
 ocamlc.c: $(OCAMLC) check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
@@ -62,8 +76,12 @@ flocon: flocon.c check-project
 	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -L $(LIBDIR) \
 	  $(LIBDIR)/unix.a $(LIBDIR)/graphics.a -lgraphics -lX11 -lunix
 
+###
+
 clean:
-	@rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) ocamlc.c ocamlc ocamlc.exe
+	@rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) ocamlc.c ocamlc
+
+###
 
 .PHONY: tests check-project clean
 .PRESERVE: ocamlc.c
