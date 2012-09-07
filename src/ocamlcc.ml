@@ -43,6 +43,8 @@ let spec =
      " Generate additional C code to trace execution");
     ("-no-main", Arg.Set Options.no_main,
      " Do not include the main function");
+    ("-no-xconst", Arg.Set Options.no_xconst,
+     " Do not perform constant extraction");
     ("-include", Arg.Unit (fun () -> print_endline Config.include_dir; exit 0),
      " Print include directory and exit");
     ("-stat", Arg.Set Options.stat,

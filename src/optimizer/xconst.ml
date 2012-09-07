@@ -666,11 +666,11 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
 ;;
 
 let run prims funs =
-  Options.verb_start "+ Computing cell types";
+  let () = Options.verb_start "+ Computing cell types" in
   let compute_arg_ids arity states =
     match states.(0) with
-      | None -> assert false
-      | Some state ->
+    | None -> assert false
+    | Some state ->
         let arg_ids = Array.make arity 0 in
         Stk.iteri (fun i id -> arg_ids.(i) <- id) state.stack;
         arg_ids

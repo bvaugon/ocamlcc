@@ -24,6 +24,7 @@ let arch = ref NO_ARCH;;
 let sigconf = ref Efficient;;
 let except = ref Setjmp;;
 let ccomp = ref Config.ccomp;;
+let no_xconst = ref false;;
 
 let offset_counter = ref 0;;
 let (message, ofsmsg) =
