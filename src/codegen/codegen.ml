@@ -753,7 +753,7 @@ let export_fun oc prims dbug funs fun_id
   if !Options.trace && fun_id <> 0 then
     fprintf oc "  printf(\"--> f%d\\n\");\n" fun_id;
   if fun_desc.is_special then
-    fprintf oc "  OCAMLCC_SPECIAL_TAIL_CALL_HEADER(%d)" fun_id;
+    fprintf oc "  OCAMLCC_SPECIAL_TAIL_CALL_HEADER(%d)\n" fun_id;
   export_fun_declarations oc fun_desc.arity var_nb use_tmp arg_depths;
   export_fun_init oc use_env fun_desc.arity arg_depths;
   Array.iteri export_instr body;

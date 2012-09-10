@@ -150,7 +150,7 @@ let xconst_ids oc dzeta_code =
 \n\
 Value cells            -> %6d  (%.2f%% of idents)\n\
 Pointers               -> %6d  (%.2f%% of idents, %.2f%% of cells)\n\
-Cells read             -> %6d  (%.2f%% of idents, %.2f%% of cells)\n\n"
+Read cells             -> %6d  (%.2f%% of idents, %.2f%% of cells)\n\n"
     !id_cnt
     !cell_cnt (percentage !cell_cnt !id_cnt)
     !ptr_cnt (percentage !ptr_cnt !id_cnt) (percentage !ptr_cnt !cell_cnt)

@@ -654,15 +654,15 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
     in
     IMap.fold f idvd_map ISet.empty
   in
+  let gc_read = ref gc_read in
+  if !Options.no_xconst then (
+    ISet.iter (fun id -> ptr_read id; ptr_write id; int_read id; int_write id;
+                 gc_read := ISet.add id !gc_read) cell_set;
+    int_set := ISet.empty;
+  );
   let ptr_set =
-    if !Options.no_xconst then
-      List.fold_left ISet.union ISet.empty [
-        !int_set; !return_set; !int_read_set; !int_write_set; !ptr_read_set;
-        !ptr_write_set;
-      ]
-    else
-      ISet.diff (ISet.inter (ISet.inter !ptr_write_set !ptr_read_set)
-                   (ISet.union (ISet.inter gc_read cell_set) arg_set)) !int_set
+    ISet.diff (ISet.inter (ISet.inter !ptr_write_set !ptr_read_set)
+                 (ISet.union (ISet.inter !gc_read cell_set) arg_set)) !int_set
   in
   let read_set =
     ISet.inter (ISet.union !ptr_read_set !int_read_set) cell_set
@@ -731,5 +731,6 @@ let run prims funs =
     IMap.add id (fun_desc, states, idvd_map, ptr_set, read_set) acc
   in
   Options.verb_stop();
-  (List.fold_left compute_dzeta_code IMap.empty infos, fun_tys)
+  let dzeta_code = List.fold_left compute_dzeta_code IMap.empty infos in
+  (dzeta_code, fun_tys)
 ;;
