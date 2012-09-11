@@ -655,6 +655,9 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
     IMap.fold f idvd_map ISet.empty
   in
   let gc_read = ref gc_read in
+  let read_set =
+    ISet.inter (ISet.union !ptr_read_set !int_read_set) cell_set
+  in
   if !Options.no_xconst then (
     ISet.iter (fun id -> ptr_read id; ptr_write id; int_read id; int_write id;
                  gc_read := ISet.add id !gc_read) cell_set;
@@ -663,9 +666,6 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
   let ptr_set =
     ISet.diff (ISet.inter (ISet.inter !ptr_write_set !ptr_read_set)
                  (ISet.union (ISet.inter !gc_read cell_set) arg_set)) !int_set
-  in
-  let read_set =
-    ISet.inter (ISet.union !ptr_read_set !int_read_set) cell_set
   in
   (* Remark: if id is not read then id is not a pointer or not a variable. *)
   (ptr_set, read_set, ptr_res)
