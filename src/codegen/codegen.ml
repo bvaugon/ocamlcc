@@ -102,7 +102,7 @@ let export_fun_foot oc =
 ;;
 
 let export_fun oc prims dbug funs fun_id
-    (fun_desc, states, idvd_map, ptr_set, read_set) =
+    (fun_desc, states, idvd_map, ptr_set, read_set, read_args) =
   let body = fun_desc.body in
   let instr_nb = Array.length body in
   let catch_list = ref [] in
@@ -125,23 +125,20 @@ let export_fun oc prims dbug funs fun_id
     in
     f 0
   in
-  let (args_ofs, arg_depths, read_args) =
-    let f (n, depth, map, set) id =
-      if is_ptr id then
-        (n + 1, depth - 1, IMap.add n depth map, ISet.add n set)
-      else if is_read id then
-        (n + 1, depth, map, ISet.add n set)
-      else
-        (n + 1, depth, map, ISet.add n set)
+  let (args_ofs, arg_depths) =
+    let f (n, depth, map) id =
+      if is_ptr id then (n + 1, depth - 1, IMap.add n depth map)
+      else if is_read id then (n + 1, depth, map)
+      else (n + 1, depth, map)
     in
     match states.(0) with
       | None -> assert false
       | Some state ->
         let init_pdepth = if use_env then -2 else -1 in
-        let (_, depth, map, set) =
-          Stk.fold_left f (0, init_pdepth, IMap.empty, ISet.empty) state.stack
+        let (_, depth, map) =
+          Stk.fold_left f (0, init_pdepth, IMap.empty) state.stack
         in
-        (depth, map, set)
+        (depth, map)
   in
   let (var_nb, var_levels, ptr_depths) =
     let add id depth map =
@@ -768,7 +765,7 @@ let export_fun oc prims dbug funs fun_id
 let export oc prims dbug funs dzeta_code =
   let main = IMap.find 0 dzeta_code in
   let rest = IMap.remove 0 dzeta_code in
-  let f id (fd, _, _, _, _) =
+  let f id (fd, _, _, _, _, _) =
     export_fun_decl_signature oc id (Block.test_useenv fd)
       (Block.test_inlinable funs fd) fd.arity
   in

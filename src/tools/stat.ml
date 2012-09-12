@@ -133,7 +133,7 @@ let xconst_ids oc dzeta_code =
   let cell_cnt = ref 0 in
   let ptr_cnt = ref 0 in
   let read_cnt = ref 0 in
-  let count _ (_, _, vd_map, ptr_set, read_set) =
+  let count _ (_, _, vd_map, ptr_set, read_set, _) =
     let f id vd =
       incr id_cnt;
       if vd = VCell then (
