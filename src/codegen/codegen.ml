@@ -46,7 +46,7 @@ let export_fun_def_signature oc id use_env arity =
   fprintf oc " {\n";
 ;;
 
-let export_fun_declarations oc arity var_nb use_tmp arg_depths =
+let export_fun_declarations oc arity var_nb use_tmp arg_depths read_args =
   let cnt = ref 0 in
   let print c id =
     incr cnt;
@@ -57,7 +57,7 @@ let export_fun_declarations oc arity var_nb use_tmp arg_depths =
   begin match !Options.arch with
     | NO_ARCH ->
       for i = 1 to arity - 1 do
-        if not (IMap.mem i arg_depths) then print 'p' i;
+        if ISet.mem i read_args && not (IMap.mem i arg_depths) then print 'p' i;
       done;
       if !cnt <> 0 then (
         cnt := 0;
@@ -71,7 +71,7 @@ let export_fun_declarations oc arity var_nb use_tmp arg_depths =
   fprintf oc "  value *sp;\n";
 ;;
 
-let export_fun_init oc use_env arity arg_depths =
+let export_fun_init oc use_env arity arg_depths read_args =
   fprintf oc "  sp = caml_extern_sp;\n";
   match !Options.arch with
     | NO_ARCH ->
@@ -84,7 +84,7 @@ let export_fun_init oc use_env arity arg_depths =
           else
             fprintf oc "  sp[%d] = ocamlcc_global_params[%d];\n" ofs (i - 1);
         with Not_found ->
-          if i <> 0 then
+          if i <> 0 && ISet.mem i read_args then
             fprintf oc "  p%d = ocamlcc_global_params[%d];\n" i (i - 1);
       done;
     | _ ->
@@ -125,19 +125,23 @@ let export_fun oc prims dbug funs fun_id
     in
     f 0
   in
-  let (args_ofs, arg_depths) =
-    let f (n, depth, map) id =
-      if is_ptr id then (n + 1, depth - 1, IMap.add n depth map)
-      else (n + 1, depth, map)
+  let (args_ofs, arg_depths, read_args) =
+    let f (n, depth, map, set) id =
+      if is_ptr id then
+        (n + 1, depth - 1, IMap.add n depth map, ISet.add n set)
+      else if is_read id then
+        (n + 1, depth, map, ISet.add n set)
+      else
+        (n + 1, depth, map, set)
     in
     match states.(0) with
       | None -> assert false
       | Some state ->
         let init_pdepth = if use_env then -2 else -1 in
-        let (_, depth, map) =
-          Stk.fold_left f (0, init_pdepth, IMap.empty) state.stack
+        let (_, depth, map, set) =
+          Stk.fold_left f (0, init_pdepth, IMap.empty, ISet.empty) state.stack
         in
-        (depth, map)
+        (depth, map, set)
   in
   let (var_nb, var_levels, ptr_depths) =
     let add id depth map =
@@ -473,7 +477,7 @@ let export_fun oc prims dbug funs fun_id
           let index = t.(i).pointed.index in
           let arity = (IMap.find index funs).arity in
           fprintf oc
-            "  SET_YOUNG_FIELD(%d, tmp, Make_header(%d, Infix_tag, Caml_white));\n"
+         "  SET_YOUNG_FIELD(%d, tmp, Make_header(%d, Infix_tag, Caml_white));\n"
             (3 * i + 2) (3 * (i + 1));
           fprintf oc "  SET_YOUNG_FIELD(%d, tmp, (value) &f%d);\n"
             (3 * i + 3) index;
@@ -754,8 +758,8 @@ let export_fun oc prims dbug funs fun_id
     fprintf oc "  printf(\"--> f%d\\n\");\n" fun_id;
   if fun_desc.is_special then
     fprintf oc "  OCAMLCC_SPECIAL_TAIL_CALL_HEADER(%d)\n" fun_id;
-  export_fun_declarations oc fun_desc.arity var_nb use_tmp arg_depths;
-  export_fun_init oc use_env fun_desc.arity arg_depths;
+  export_fun_declarations oc fun_desc.arity var_nb use_tmp arg_depths read_args;
+  export_fun_init oc use_env fun_desc.arity arg_depths read_args;
   Array.iteri export_instr body;
   export_fun_foot oc;
   assert (!catch_list = []);
