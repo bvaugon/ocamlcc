@@ -132,7 +132,7 @@ let export_fun oc prims dbug funs fun_id
       else if is_read id then
         (n + 1, depth, map, ISet.add n set)
       else
-        (n + 1, depth, map, set)
+        (n + 1, depth, map, ISet.add n set)
     in
     match states.(0) with
       | None -> assert false
