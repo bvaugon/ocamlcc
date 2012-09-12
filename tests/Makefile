@@ -120,7 +120,7 @@ flocon-$(ARCH).c: flocon.byte check-project
 flocon-nxc-$(ARCH).c: flocon.byte check-project
 	$(OCAMLCC) -signal R -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
 
-flocon%: flocon%.c check-project
+floco%: floco%.c check-project
 	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -L $(LIBDIR) \
 	  $(LIBDIR)/unix.a $(LIBDIR)/graphics.a -lgraphics -lX11 -lunix
 
