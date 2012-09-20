@@ -12,7 +12,6 @@
 
 open Printf;;
 open Types;;
-open Tools;;
 
 let gen_tail_call_param oc n =
   fprintf oc "value ocamlcc_tail_call_p%d;\n" n;

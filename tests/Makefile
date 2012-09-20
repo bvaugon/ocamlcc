@@ -99,7 +99,18 @@ check-project:
 ###
 
 ocamlc.c: $(OCAMLC) check-project
+	$(OCAMLCC) -c -verbose -stat -arch NONE $< -o $@
+
+ocamlc-nxc.c: $(OCAMLC) check-project
+	$(OCAMLCC) -c -verbose -stat -arch NONE -no-xconst $< -o $@
+
+ocamlc-$(ARCH).c: $(OCAMLC) check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
+
+ocamlc-nxc-$(ARCH).c: $(OCAMLC) check-project
+	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
+
+###
 
 flocon.byte: flocon.ml
 	ocamlc -g unix.cma graphics.cma $< -o $@
@@ -127,7 +138,9 @@ floco%: floco%.c check-project
 ###
 
 clean:
-	@rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) ocamlc.c ocamlc
+	@rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) ocamlc.c ocamlc ocamlc-nxc.c \
+	  ocamlc-nxc ocamlc-$(ARCH).c ocamlc-$(ARCH) ocamlc-nxc-$(ARCH).c \
+	  ocamlc-nxc-$(ARCH)
 
 ###
 

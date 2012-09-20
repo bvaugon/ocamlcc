@@ -10,9 +10,6 @@
 (*                                                                       *)
 (*************************************************************************)
 
-open Ccodepp;;
-open Types;;
-
 Printexc.record_backtrace true;;
 
 let set_arch = ref (fun _ -> ());;

@@ -21,9 +21,9 @@ let print_flag oc title =
   let len = String.length title in
   let bef = flag_size / 2 - (len + 1) / 2 in
   let aft = flag_size - bef - len in
-  for i = 1 to bef do output_char oc '=' done;
+  for _i = 1 to bef do output_char oc '=' done;
   output_string oc title;
-  for i = 1 to aft do output_char oc '=' done;
+  for _i = 1 to aft do output_char oc '=' done;
   output_char oc '\n';
 ;;
 

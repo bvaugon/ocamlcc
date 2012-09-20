@@ -10,10 +10,8 @@
 (*                                                                       *)
 (*************************************************************************)
 
-open Printf;;
 open Types;;
 open Tools;;
-open Instr;;
 
 let test_useenv fun_desc =
   let body = fun_desc.body in

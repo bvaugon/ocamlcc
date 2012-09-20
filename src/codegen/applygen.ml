@@ -12,7 +12,6 @@
 
 open Printf;;
 open Types;;
-open Tools;;
 
 let attribute = "__attribute__((noinline))";;
 

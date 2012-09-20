@@ -11,7 +11,6 @@
 (*************************************************************************)
 
 open Types;;
-open Instr;;
 
 let compute_ptrs code =
   let nb_instr = Array.length code in

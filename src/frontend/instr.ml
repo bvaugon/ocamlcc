@@ -12,7 +12,6 @@
 
 open Printf;;
 open Types;;
-open Tools;;
 
 let fake = { addr = -1 ; index = -1 ; bc = Stop ; is_pointed = false };;
 
