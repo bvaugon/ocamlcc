@@ -24,7 +24,9 @@
 CAMLprim value caml_array_get_addr(value array, value index)
 {
   intnat idx = Long_val(index);
-  if (idx < 0 || idx >= Wosize_val(array)) caml_array_bound_error();
+  /* OCamlCC: fix gcc warning: signed/unsigned comparison. */
+  if (idx < 0 || ((mlsize_t) idx) >= Wosize_val(array))
+    caml_array_bound_error();
   return Field(array, idx);
 }
 
@@ -57,7 +59,9 @@ CAMLprim value caml_array_get(value array, value index)
 CAMLprim value caml_array_set_addr(value array, value index, value newval)
 {
   intnat idx = Long_val(index);
-  if (idx < 0 || idx >= Wosize_val(array)) caml_array_bound_error();
+  /* OCamlCC: fix gcc warning: signed/unsigned comparison. */
+  if (idx < 0 || ((mlsize_t) idx) >= Wosize_val(array))
+    caml_array_bound_error();
   Modify(&Field(array, idx), newval);
   return Val_unit;
 }

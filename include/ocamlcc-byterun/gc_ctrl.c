@@ -125,7 +125,8 @@ static void check_block (char *hp)
 static value heap_stats (int returnstats)
 {
   CAMLparam0 ();
-  intnat live_words = 0, live_blocks = 0,
+  /* OCamlCC: fix gcc warning: signed/unsigned comparisons. */
+  uintnat live_words = 0, live_blocks = 0,
          free_words = 0, free_blocks = 0, largest_free = 0,
          fragments = 0, heap_chunks = 0;
   char *chunk = caml_heap_start, *chunk_end;

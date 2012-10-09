@@ -218,7 +218,8 @@ CAMLprim value old_caml_parse_engine(struct parser_tables *tables,
           if (caml_parser_trace){
             fprintf(stderr, "Discarding state %d\n", state1);
           }
-          if (sp <= Int_val(env->stackbase)) {
+          /* OCamlCC: fix gcc warning: signed/unsigned comparison. */
+          if (sp <= (mlsize_t) Int_val(env->stackbase)) {
             if (caml_parser_trace){
               fprintf(stderr, "No more states to discard\n");
             }
@@ -244,7 +245,8 @@ CAMLprim value old_caml_parse_engine(struct parser_tables *tables,
               state, Short(tables->table, n2));
     state = Short(tables->table, n2);
     sp++;
-    if (sp < Long_val(env->stacksize)) goto push;
+    /* OCamlCC: fix gcc warning: signed/unsigned comparison. */
+    if (sp < (mlsize_t) Long_val(env->stacksize)) goto push;
     SAVE;
     return GROW_STACKS_1;
                                  /* The ML code resizes the stacks */
@@ -275,7 +277,8 @@ CAMLprim value old_caml_parse_engine(struct parser_tables *tables,
     } else {
       state = Short(tables->dgoto, m);
     }
-    if (sp < Long_val(env->stacksize)) goto semantic_action;
+    /* OCamlCC: fix gcc warning: signed/unsigned comparison. */
+    if (sp < (mlsize_t) Long_val(env->stacksize)) goto semantic_action;
     SAVE;
     return GROW_STACKS_2;
                                 /* The ML code resizes the stacks */
