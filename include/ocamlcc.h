@@ -13,6 +13,10 @@
 #ifndef OCAMLCC_H
 #define OCAMLCC_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "ocamlcc-signals.c"
 #include "ocamlcc-exceptions.c"
 #include "ocamlcc-windows.c"
@@ -23,5 +27,9 @@
 #include "ocamlcc-main.c"
 #include "ocamlcc-byterun.h"
 #include "ocamlcc-otherlibs.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

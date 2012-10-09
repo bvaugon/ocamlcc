@@ -128,7 +128,6 @@ let export_fun oc prims dbug funs fun_id
   let (args_ofs, arg_depths) =
     let f (n, depth, map) id =
       if is_ptr id then (n + 1, depth - 1, IMap.add n depth map)
-      else if is_read id then (n + 1, depth, map)
       else (n + 1, depth, map)
     in
     match states.(0) with
