@@ -24,6 +24,7 @@ let arch = ref NO_ARCH;;
 let sigconf = ref Efficient;;
 let except = ref Setjmp;;
 let ccomp = ref Config.ccomp;;
+let ccopts = ref "-O3 -Wall";;
 let no_xconst = ref false;;
 
 let offset_counter = ref 0;;
@@ -108,4 +109,8 @@ let arch_option_doc =
     all_archs;
   Printf.bprintf buf " ]";
   Buffer.contents buf
+;;
+
+let add_ccopts sopts =
+  ccopts := Printf.sprintf "%s %s" !ccopts sopts
 ;;

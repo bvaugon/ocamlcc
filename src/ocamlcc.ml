@@ -21,6 +21,7 @@ let set_exception = ref (fun _ -> ());;
 let usage = Printf.sprintf "Usage: %s [ OPTIONS ] [ <src.byte> ]" Sys.argv.(0);;
 
 let spec =
+  let ccopts = !Options.ccopts in
   Arg.align [
     ("-c", Arg.Set Options.only_generate_C,
      " Stop after generation of C code");
@@ -30,6 +31,8 @@ let spec =
      "<file> Output goes to <file>");
     ("-cc", Arg.Set_string Options.ccomp,
      Printf.sprintf "<x> Define C compiler (default: %s)" Config.ccomp);
+    ("-ccopts", Arg.String Options.add_ccopts,
+     Printf.sprintf "<x> Extra arguments for the C compiler (default: '%s')" ccopts);
     ("-arch", Arg.String (fun a -> !set_arch a),
      Options.arch_option_doc);
     ("-signal", Arg.String (fun s -> !set_sigconf s),
@@ -138,8 +141,8 @@ let cfile =
 let cc_run args =
   let compilation =
     Printf.sprintf
-      "%s %s -I %s -O3 -Wall -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E"
-      !Options.ccomp args Config.include_dir
+      "%s %s -I %s -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E %s"
+      !Options.ccomp args Config.include_dir !Options.ccopts
   in
   Options.message "+ Running %S..." compilation;
   let ret_code = Sys.command compilation in
@@ -179,8 +182,8 @@ try
     Options.message "+ Removing %s..." cfile;
     begin try Sys.remove cfile with Sys_error _ -> () end;
     Options.message " done\n";
-    exit ret_code
   );
+  exit ret_code
 with Failure msg | Sys_error msg ->
   Printf.eprintf " fail\nError: %s\n" msg;
   exit 1;
