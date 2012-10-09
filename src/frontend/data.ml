@@ -53,7 +53,7 @@ let export oc { values = _ ; dump = dump } =
       Printf.fprintf oc " 0x00\n";
     )
   in
-  Printf.fprintf oc "char ocamlcc_global_data[] = {";
+  Printf.fprintf oc "unsigned char ocamlcc_global_data[] = {";
   f 0;
   Printf.fprintf oc "};\n";
 ;;

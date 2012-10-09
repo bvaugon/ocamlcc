@@ -336,7 +336,7 @@ extern void caml_signal_thread(void * lpParam);
 
 /* OCamlCC: replace caml_main */
 
-CAMLextern char ocamlcc_global_data[];
+CAMLextern unsigned char ocamlcc_global_data[];
 CAMLextern value ocamlcc_main();
 
 CAMLextern void caml_main(char **argv){
@@ -413,7 +413,7 @@ CAMLextern void caml_main(char **argv){
   /* chan = caml_open_descriptor_in(fd); */
   /* caml_global_data = caml_input_val(chan); */
   caml_global_data =
-    caml_input_value_from_block(ocamlcc_global_data,
+    caml_input_value_from_block((char *) ocamlcc_global_data,
                                 OCAMLCC_GLOBAL_DATA_LENGTH);
   /* caml_close_channel(chan); /\* this also closes fd *\/ */
   /* caml_stat_free(trail.section); */
