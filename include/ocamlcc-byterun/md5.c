@@ -173,6 +173,7 @@ CAMLexport void caml_MD5Final(unsigned char *digest, struct MD5Context *ctx)
 {
     unsigned count;
     unsigned char *p;
+    uint32 *tmp;
 
     /* Compute number of bytes mod 64 */
     count = (ctx->bits[0] >> 3) & 0x3F;
@@ -201,8 +202,10 @@ CAMLexport void caml_MD5Final(unsigned char *digest, struct MD5Context *ctx)
     byteReverse(ctx->in, 14);
 
     /* Append length in bits and transform */
-    ((uint32 *) ctx->in)[14] = ctx->bits[0];
-    ((uint32 *) ctx->in)[15] = ctx->bits[1];
+    /* OCamlCC: fix gcc warning: "strict aliases" */
+    tmp = (uint32 *) ctx->in;
+    tmp[14] = ctx->bits[0];
+    tmp[15] = ctx->bits[1];
 
     caml_MD5Transform(ctx->buf, (uint32 *) ctx->in);
     byteReverse((unsigned char *) ctx->buf, 4);
