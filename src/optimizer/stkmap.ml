@@ -99,13 +99,11 @@ let interp arity body =
             f (bufsize - 1) (pop_somes 1 bufsize stkmap) (ind + 1)
           | Pushtrap ptr ->
             f bufsize stkmap ptr.pointed.index;
-            let new_stkmap1 = push_nones 3 stkmap in
-            let new_stkmap2 = Stk.push (Some bufsize) new_stkmap1 in
-            f (bufsize + 1) new_stkmap2 (ind + 1)
+            let new_stkmap = push_nones 4 stkmap in
+            f bufsize new_stkmap (ind + 1)
           | Poptrap ->
-            let new_stkmap1 = pop_somes 1 bufsize stkmap in
-            let new_stkmap2 = pop_nones 3 new_stkmap1 in
-            f (bufsize - 1) new_stkmap2 (ind + 1)
+            let new_stkmap = pop_nones 4 stkmap in
+            f bufsize new_stkmap (ind + 1)
           | Checksignals ->
             f bufsize stkmap (ind + 1)
           | Ccall (narg, _) ->

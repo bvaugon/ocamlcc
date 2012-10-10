@@ -180,13 +180,11 @@ let interp arity body env_uses =
           f new_accu new_stack (ind + 1);
         | Pushtrap ptr ->
           f accu stack ptr.pointed.index;
-          let new_stack = Stk.push ind stack in
-          f accu new_stack (ind + 1);
+          f accu stack (ind + 1);
         | Raise ->
           touch accu;
         | Poptrap ->
-          let new_stack = Stk.pop 1 stack in
-          f accu new_stack (ind + 1);
+          f accu stack (ind + 1);
         | Const _ ->
           let new_accu = ind in
           f new_accu stack (ind + 1);

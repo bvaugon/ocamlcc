@@ -160,14 +160,12 @@ let compute_ids arity body =
           f new_accu new_stack (ind + 1);
         | Pushtrap ptr ->
           let exn_id = new_cell () in
-          let new_stack = Stk.push (new_cell ()) stack in
           f exn_id stack ptr.pointed.index;
-          f accu new_stack (ind + 1);
+          f accu stack (ind + 1);
         | Raise ->
           ();
         | Poptrap ->
-          let new_stack = Stk.pop 1 stack in
-          f accu new_stack (ind + 1);
+          f accu stack (ind + 1);
         | Const n ->
           let new_accu = new_const n in
           f new_accu stack (ind + 1);
