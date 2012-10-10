@@ -518,11 +518,11 @@ let export_fun oc prims dbug funs fun_id
               | (true, true) ->
                 (true, "MAKE_SAVED_YOUNG_BLOCK", "SET_YOUNG_FIELD")
               | (false, true) ->
-                (true, "MAKE_SAVED_BLOCK", "SETFIELD")
+                (true, "MAKE_SAVED_BLOCK", "INITFIELD")
               | (true, false) ->
                 (false, "MAKE_YOUNG_BLOCK", "SET_YOUNG_FIELD")
               | (false, false) ->
-                (false, "MAKE_BLOCK", "SETFIELD")
+                (false, "MAKE_BLOCK", "INITFIELD")
           in
           assert (is_cell dst_id);
           fprintf oc "  %s(" mkblk;

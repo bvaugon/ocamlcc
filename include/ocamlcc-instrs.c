@@ -289,6 +289,9 @@
 #define SETFIELD(ind, block, src) \
   caml_modify(&Field((block), (ind)), (src));
 
+#define INITFIELD(ind, block, src) \
+  caml_initialize(&Field((block), (ind)), (src));
+
 #define SETFLOATFIELD(ind, block, src) \
   Store_double_field((block), (ind), Double_val(src));
 
