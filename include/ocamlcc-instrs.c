@@ -283,19 +283,23 @@
 
 /* Access to components of blocks */
 
-#define SET_YOUNG_FIELD(ind, block, src) \
+#define SET_YOUNG_FIELD(ind, block, src)        \
+  Assert(ind < Wosize_val(block));              \
   Field((block), (ind)) = (src);
 
-#define SETFIELD(ind, block, src) \
+#define SETFIELD(ind, block, src)               \
+  Assert(ind < Wosize_val(block));              \
   caml_modify(&Field((block), (ind)), (src));
 
-#define INITFIELD(ind, block, src) \
+#define INITFIELD(ind, block, src)              \
+  Assert(ind < Wosize_val(block));              \
   caml_initialize(&Field((block), (ind)), (src));
 
-#define SETFLOATFIELD(ind, block, src) \
+#define SETFLOATFIELD(ind, block, src)                  \
   Store_double_field((block), (ind), Double_val(src));
 
-#define GETFIELD(ind, block, dst) \
+#define GETFIELD(ind, block, dst)               \
+  Assert(ind < Wosize_val(block));              \
   (dst) = Field((block), (ind));
 
 #define GETFLOATFIELD(ind, block, dst, frame_sz) {               \
@@ -310,7 +314,7 @@
 
 /* Access to global variables */
 
-#define SETGLOBAL(ind, src) \
+#define SETGLOBAL(ind, src)                             \
   caml_modify(&Field(caml_global_data, (ind)), (src));
 
 
