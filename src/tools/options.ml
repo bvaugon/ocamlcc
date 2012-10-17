@@ -47,9 +47,9 @@ let (message, ofsmsg) =
 
 let (btime, etime) =
   let start = ref 0.0 in
-  let btime () = start := Sys.time() in
+  let btime () = start := Unix.gettimeofday () in
   let etime () =
-    let t = Sys.time() -. !start in
+    let t = Unix.gettimeofday () -. !start in
     start := 0.0;
     Printf.sprintf " [%.2fs]" t
   in

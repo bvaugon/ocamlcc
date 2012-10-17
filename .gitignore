@@ -4,6 +4,7 @@ src/_build/
 src/config.ml
 dist/*.tar.bz2
 !dist/ocamlcc-1.0.tar.bz2
+tests/a.out
 tests/*.byte
 tests/*.cmi
 tests/*.cmo

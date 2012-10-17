@@ -144,9 +144,9 @@ let cc_run args =
       "%s %s -I %s -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E %s"
       !Options.ccomp args Config.include_dir !Options.ccopts
   in
-  Options.message "+ Running %S..." compilation;
+  Options.verb_start "+ Running %S..." compilation;
   let ret_code = Sys.command compilation in
-  Options.message " done\n";
+  Options.verb_stop ();
   ret_code
 ;;
 

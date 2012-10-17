@@ -22,7 +22,8 @@ $(TARG): _build/ocamlcc.native
 	cp $< $@
 
 _build/ocamlcc.native: $(SRCS) config.ml
-	@$(OCAMLBUILD) -Is $(DIRS) -cflag -g -lflags -g ocamlcc.native
+	@$(OCAMLBUILD) -Is $(DIRS) -cflag -g -lflag -g -libs unix \
+	  ocamlcc.native
 
 config.ml: ../etc/config.ml
 	cp $< $@
