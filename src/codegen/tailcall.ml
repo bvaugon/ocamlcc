@@ -95,7 +95,7 @@ module X86_64 = struct
   let arg_reg_nb = Array.length arg_regs;;
 
   let gen_tail_call_fun oc n =
-    let fix_sse_alignment = ((n - arg_reg_nb) land 1 = 0) && false in
+    let fix_sse_alignment = (n - arg_reg_nb) land 1 = 0 in
     let fix_sse_offset = if fix_sse_alignment then 8 else 0 in
     fprintf oc "\
 value ocamlcc_tail_call_fun_%d(value pf) {\n  \
@@ -111,7 +111,7 @@ value ocamlcc_tail_call_fun_%d(value pf) {\n  \
   __asm__(\"push %%rbp\");\n  \
   __asm__(\"ocamlcc_tail_call_restart_%d:\");\n  \
   __asm__(\"mov $0x%x, %%rbp\");\n"
-      n n n n n n (max ((n - arg_reg_nb) * 8 + 1 + fix_sse_offset) 1);
+      n n n n n n (max ((n - arg_reg_nb) * 8 + 1 + fix_sse_offset) 8);
     if fix_sse_alignment then
       fprintf oc "  \
   __asm__(\"push %%r11\");\n";
@@ -127,7 +127,9 @@ value ocamlcc_tail_call_fun_%d(value pf) {\n  \
       n n;
     if n > arg_reg_nb then
       fprintf oc "  __asm__(\"add $0x%x, %%rsp\");\n"
-        ((n - arg_reg_nb) * 8 + fix_sse_offset);
+        ((n - arg_reg_nb) * 8 + fix_sse_offset)
+    else
+      fprintf oc "  __asm__(\"add $0x8, %%rsp\");\n";
     fprintf oc "  \
   __asm__(\"pop %%rbp\");\n  \
   __asm__(\"ret\");\n  \
