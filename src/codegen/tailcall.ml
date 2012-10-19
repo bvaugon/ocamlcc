@@ -111,7 +111,7 @@ value ocamlcc_tail_call_fun_%d(value pf) {\n  \
   __asm__(\"push %%rbp\");\n  \
   __asm__(\"ocamlcc_tail_call_restart_%d:\");\n  \
   __asm__(\"mov $0x%x, %%rbp\");\n"
-      n n n n n n (max ((n - arg_reg_nb) * 8 + 1 + fix_sse_offset) 9);
+      n n n n n n (max ((n - arg_reg_nb) * 8 + 1 + fix_sse_offset) 1);
     if fix_sse_alignment then
       fprintf oc "  \
   __asm__(\"push %%r11\");\n";
