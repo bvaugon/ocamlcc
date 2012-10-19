@@ -126,7 +126,8 @@ value ocamlcc_tail_call_fun_%d(value pf) {\n  \
   __asm__(\"ocamlcc_tail_call_return_%d:\");\n"
       n n;
     if n > arg_reg_nb then
-      fprintf oc "  __asm__(\"add $0x%x, %%rsp\");\n" ((n - arg_reg_nb) * 8);
+      fprintf oc "  __asm__(\"add $0x%x, %%rsp\");\n"
+        ((n - arg_reg_nb) * 8 + fix_sse_offset);
     fprintf oc "  \
   __asm__(\"pop %%rbp\");\n  \
   __asm__(\"ret\");\n  \
