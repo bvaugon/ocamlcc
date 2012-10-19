@@ -95,6 +95,8 @@ module X86_64 = struct
   let arg_reg_nb = Array.length arg_regs;;
 
   let gen_tail_call_fun oc n =
+    let fix_sse_alignment = (n - arg_reg_nb) land 1 = 0 in
+    let fix_sse_offset = if fix_sse_alignment then 8 else 0 in
     fprintf oc "\
 value ocamlcc_tail_call_fun_%d(value pf) {\n  \
   __asm__(\"ocamlcc_tail_call_body_%d:\");\n  \
@@ -109,7 +111,10 @@ value ocamlcc_tail_call_fun_%d(value pf) {\n  \
   __asm__(\"push %%rbp\");\n  \
   __asm__(\"ocamlcc_tail_call_restart_%d:\");\n  \
   __asm__(\"mov $0x%x, %%rbp\");\n"
-      n n n n n n (max ((n - arg_reg_nb) * 8 + 1) 1);
+      n n n n n n (max ((n - arg_reg_nb) * 8 + 1 + fix_sse_offset) 9);
+    if fix_sse_alignment then
+      fprintf oc "\
+  __asm__(\"push %%r11\");\n";
     for i = n downto arg_reg_nb + 1 do
       fprintf oc "  \
   __asm__(\"mov %%0, %%%%r11\" : : \"\" (ocamlcc_tail_call_p%d));\n  \
