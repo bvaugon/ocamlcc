@@ -10,8 +10,6 @@
 (*                                                                       *)
 (*************************************************************************)
 
-Printexc.record_backtrace true;;
-
 let set_arch = ref (fun _ -> ());;
 let set_sigconf = ref (fun _ -> ());;
 let set_exception = ref (fun _ -> ());;
