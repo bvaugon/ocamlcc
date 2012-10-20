@@ -117,7 +117,7 @@ value ocamlcc_tail_call_fun_%d(value pf) {\n  \
   __asm__(\"push %%r11\");\n";
     for i = n downto arg_reg_nb + 1 do
       fprintf oc "  \
-  __asm__(\"mov %%0, %%%%r11\" : : \"\" (ocamlcc_tail_call_p%d));\n  \
+  __asm__(\"mov %%0, %%%%r11\" : : \"m\" (ocamlcc_tail_call_p%d));\n  \
   __asm__(\"push %%r11\");\n" i;
     done;
     fprintf oc "  \
