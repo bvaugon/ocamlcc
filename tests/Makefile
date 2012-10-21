@@ -16,7 +16,8 @@ LIBDIR := $(shell $(OCAMLC) -where)
 OCAMLCC = ../bin/ocamlcc
 CC = gcc
 CC_INCLUDES = -I ../etc -I ../include -I ../include/ocamlcc-byterun
-CC_FLAGS = -O3 -Wall -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E
+CC_FLAGS = -O3 -Wall -fno-omit-frame-pointer -Wno-return-type -lm -ldl \
+	     -lcurses -Wl,-E
 
 ###
 

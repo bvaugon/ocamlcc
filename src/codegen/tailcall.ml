@@ -145,32 +145,22 @@ value ocamlcc_tail_call_fun_%d(value pf) {\n  \
   ocamlcc_tail_call_p%d = a%d;                                    \\\n"
         i i;
     done;
-    fprintf oc "  __asm__ __volatile__(\"";
     for i = 1 to min n arg_reg_nb do
-      fprintf oc " \\\n    mov %%%d, %%%%%s; "
-        (i - 1) arg_regs.(i - 1);
+      fprintf oc "  register value %s __asm__(\"%s\") = a%d; \\\n"
+        arg_regs.(i - 1) arg_regs.(i - 1) i;
     done;
-    fprintf oc "  \\\n    mov %%%d, %%%%r10; " (min n arg_reg_nb);
-    fprintf oc "\" : \\\n    : ";
-    for i = 1 to min n arg_reg_nb do
-      if i <> 1 then fprintf oc ", ";
-      fprintf oc "\"r\" (a%d)" i;
-    done;
-    fprintf oc ", \"r\" (pf)";
-    fprintf oc " \\\n  : ";
-    for i = 1 to min n arg_reg_nb do
-      if i <> 1 then fprintf oc ", ";
-      fprintf oc "\"%%%s\"" arg_regs.(i - 1);
-    done;
-    fprintf oc ", \"%%r10\"";
-    fprintf oc "); \\\n";
+    fprintf oc "  register void *r10 __asm__(\"r10\") = (void *) pf; \\\n";
+    fprintf oc "  register void *r11 __asm__(\"r11\"); \\\n";
     fprintf oc "  \
-  __asm__ __volatile__(\"mov 0x8(%%rbp), %%r11\");                               \\\n  \
-  __asm__ __volatile__(\"mov $ocamlcc_tail_call_body_%d, %%rax\");               \\\n  \
-  __asm__ __volatile__(\"mov %%rax, 0x8(%%rbp)\");                               \\\n  \
-  return Val_unit;                                              \\\n\
-}\n\n" (if n <= arg_reg_nb then 0 else n);
-  ;;
+  __asm__ __volatile__(\"movq 0x8(%%%%rbp), %%%%r11; \\\n  \
+                         movq $ocamlcc_tail_call_body_%d, 0x8(%%%%rbp)\" : : "
+      (if n <= arg_reg_nb then 0 else n);
+    for i = 1 to min n arg_reg_nb do
+      fprintf oc "\"r\" (%s), " arg_regs.(i - 1);
+    done;
+    fprintf oc "\"r\" (r10), \"r\" (r11)); \\\n  return; \\\n\
+}\n\n"
+  ;;                                                                            
 
   let generate oc max_arity =
     for i = arg_reg_nb + 1 to max_arity + 1 do
