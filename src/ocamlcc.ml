@@ -139,8 +139,10 @@ let cfile =
 let cc_run args =
   let compilation =
     Printf.sprintf
-      "%s %s -I %s -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E %s"
-      !Options.ccomp args Config.include_dir !Options.ccopts
+      "%s %s -I %s -fno-omit-frame-pointer%s -lm -ldl -lcurses -Wl,-E %s"
+      !Options.ccomp args Config.include_dir
+      (if !Options.arch <> Types.X86_64 then "" else " -Wno-return-type")
+      !Options.ccopts
   in
   Options.verb_start "+ Running %S..." compilation;
   let ret_code = Sys.command compilation in
