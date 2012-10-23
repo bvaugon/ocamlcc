@@ -93,8 +93,10 @@ let except_of_string s =
     | _ -> invalid_arg "except_of_string"
 ;;
 
+(*
 try arch := arch_of_string Config.default_arch
 with Invalid_argument _ -> arch := NO_ARCH;;
+*)
 
 let default_arch = string_of_arch !arch;;
 
