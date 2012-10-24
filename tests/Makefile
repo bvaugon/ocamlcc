@@ -140,7 +140,7 @@ floco%: floco%.c check-project
 clean:
 	@rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) ocamlc.c ocamlc ocamlc-nxc.c \
 	  ocamlc-nxc ocamlc-$(ARCH).c ocamlc-$(ARCH) ocamlc-nxc-$(ARCH).c \
-	  ocamlc-nxc-$(ARCH)
+	  ocamlc-nxc-$(ARCH) a.out
 
 ###
 

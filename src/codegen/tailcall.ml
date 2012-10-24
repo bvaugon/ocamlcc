@@ -17,11 +17,6 @@ let gen_tail_call_param oc n =
   fprintf oc "value ocamlcc_tail_call_p%d;\n" n;
 ;;
 
-let gen_tail_call_define_1 oc =
-  fprintf oc "\
-#define ocamlcc_tail_call_1(pf, a1) return ((value (*)(value)) (pf))(a1);\n\n";
-;;
-
 module X86 = struct
   let gen_tail_call_fun oc n =
     fprintf oc "\
@@ -80,11 +75,10 @@ value ocamlcc_tail_call_fun_%d(value pf) {\n  \
       gen_tail_call_param oc i;
     done;
     fprintf oc "\n";
-    for i = 2 to max_arity + 1 do
+    for i = 1 to max_arity + 1 do
       gen_tail_call_fun oc i;
     done;
-    gen_tail_call_define_1 oc;
-    for i = 2 to max_arity + 1 do
+    for i = 1 to max_arity + 1 do
       gen_tail_call_define oc i;
     done;
   ;;
@@ -171,12 +165,10 @@ value ocamlcc_tail_call_fun_%d(value pf) {\n  \
       gen_tail_call_param oc i;
     done;
     fprintf oc "\n";
-    gen_tail_call_fun oc 0;
-    for i = 2 to max_arity + 1 do
+    for i = 1 to max_arity + 1 do
       gen_tail_call_fun oc i;
     done;
-    gen_tail_call_define_1 oc;
-    for i = 2 to max_arity + 1 do
+    for i = 1 to max_arity + 1 do
       gen_tail_call_define oc i;
     done;
   ;;

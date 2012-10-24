@@ -262,7 +262,7 @@ let make_funs index code =
     Array.iter (update_pointed map) new_body;
     update_is_pointed new_body;
     let is_special = is_special_tail_call new_body in
-    if is_special && !Options.arch = NO_ARCH then set_special_appterms new_body;
+    if is_special then set_special_appterms new_body;
     {
       arity = arity;
       fun_id = fun_id;
