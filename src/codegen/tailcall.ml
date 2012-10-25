@@ -110,7 +110,7 @@ value ocamlcc_tail_call_fun_%d(value pf) {\n  \
       (max ((n - arg_reg_nb) * 8 + 1 + fix_sse_offset) 1);
     if fix_sse_alignment then
       fprintf oc "  \
-  __asm__ __volatile__(\"push %%r11\");\n";
+  __asm__ __volatile__(\"sub $0x8, %%rsp\");\n";
     for i = n downto arg_reg_nb + 1 do
       fprintf oc "  \
   __asm__ __volatile__(\"push %%0\" : : \"m\" (ocamlcc_tail_call_p%d));\n" i
