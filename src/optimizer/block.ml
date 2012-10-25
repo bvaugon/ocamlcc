@@ -35,15 +35,20 @@ let test_inlinable funs fun_desc =
     let rec f i =
       if i = len then true else
         match body.(i).bc with
-          | DynamicAppterm (n, _) when n >= cfun_arity -> false
-          | PartialAppterm (n, _) when n >= cfun_arity -> false
-          | StaticAppterm (n, _, ptr) ->
-            let callee_arity =
-              if test_useenv (IMap.find ptr.pointed.index funs) then n + 1
-              else n
-            in
-            if callee_arity > cfun_arity then false else f (i + 1)
+          | DynamicAppterm (nargs, _) when
+              nargs >= cfun_arity && (!Options.arch <> X86_64 || nargs >= 6) ->
+            false
+          | PartialAppterm (nargs, _) when nargs >= cfun_arity -> false
           | SpecialAppterm _ -> false
+          | StaticAppterm (nargs, _, ptr) ->
+            let callee_nargs =
+              if test_useenv (IMap.find ptr.pointed.index funs) then nargs + 1
+              else nargs
+            in
+            if
+              callee_nargs > cfun_arity &&
+                (!Options.arch <> X86_64 || callee_nargs > 6)
+            then false else f (i + 1)
           | _ -> f (i + 1)
     in
     f 0
