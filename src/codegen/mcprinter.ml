@@ -259,12 +259,14 @@ and print_args oc args =
     | arg :: rest -> fprintf oc "%a, %a" print_expr arg print_args rest
 
 and print_env_args oc (env, args) =
-  if !Options.arch = NO_ARCH then
-    fprintf oc "%a, %a" print_expr env print_args args
-  else if env <> EVal_unit then
-    fprintf oc "%a, %a" print_args args print_expr env
-  else
-    print_args oc args
+  match !Options.arch with
+    | NO_ARCH ->
+      fprintf oc "%a, %a" print_expr env print_args args
+    | ALL_ARCH | X86 | X86_64 ->
+      if env <> EVal_unit then
+        fprintf oc "%a, %a" print_args args print_expr env
+      else
+        print_args oc args
 
 and print_lvalue_opt oc lvalue_opt =
   match lvalue_opt with
@@ -377,7 +379,7 @@ and print_fun_decl oc {
   fdc_noinline = noinline;
 } =
   print_fun_signature oc ret_type name params;
-  if noinline then fprintf oc " __attribute__((noinline))";
+  if noinline then fprintf oc "%s" Tools.noinline;
   fprintf oc ";\n";
 
 and print_fun_def oc {

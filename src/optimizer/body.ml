@@ -26,32 +26,35 @@ let test_useenv fun_desc =
 ;;
 
 let test_inlinable funs fun_desc =
-  if !Options.arch = NO_ARCH then true else
-    let body = fun_desc.body in
-    let cfun_arity =
-      if test_useenv fun_desc then fun_desc.arity + 1 else fun_desc.arity
-    in
-    let len = Array.length body in
-    let rec f i =
-      if i = len then true else
-        match body.(i).bc with
-          | DynamicAppterm (nargs, _) when
-              nargs >= cfun_arity && (!Options.arch <> X86_64 || nargs >= 6) ->
-            false
-          | PartialAppterm (nargs, _) when nargs >= cfun_arity -> false
-          | SpecialAppterm _ -> false
-          | StaticAppterm (nargs, _, ptr) ->
-            let callee_nargs =
-              if test_useenv (IMap.find ptr.pointed.index funs) then nargs + 1
-              else nargs
-            in
-            if
-              callee_nargs > cfun_arity &&
-                (!Options.arch <> X86_64 || callee_nargs > 6)
-            then false else f (i + 1)
-          | _ -> f (i + 1)
-    in
-    f 0
+  match !Options.arch with
+    | ALL_ARCH | NO_ARCH -> true
+    | X86 | X86_64 ->
+      let body = fun_desc.body in
+      let cfun_arity =
+        if test_useenv fun_desc then fun_desc.arity + 1 else fun_desc.arity
+      in
+      let len = Array.length body in
+      let rec f i =
+        if i = len then true else
+          match body.(i).bc with
+            | DynamicAppterm (nargs, _) when
+                nargs >= cfun_arity &&
+                  (!Options.arch <> X86_64 || nargs >= 6) ->
+              false
+            | PartialAppterm (nargs, _) when nargs >= cfun_arity -> false
+            | SpecialAppterm _ -> false
+            | StaticAppterm (nargs, _, ptr) ->
+              let callee_nargs =
+                if test_useenv (IMap.find ptr.pointed.index funs) then nargs + 1
+                else nargs
+              in
+              if
+                callee_nargs > cfun_arity &&
+                  (!Options.arch <> X86_64 || callee_nargs > 6)
+              then false else f (i + 1)
+            | _ -> f (i + 1)
+      in
+      f 0
 ;;
 
 let compute_maximum_arity funs =

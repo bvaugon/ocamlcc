@@ -10,6 +10,10 @@
 (*                                                                       *)
 (*************************************************************************)
 
+let noinline = "__attribute__((noinline))";;
+
+(***)
+
 module Id = struct
   type t = int
   let counter = ref 0

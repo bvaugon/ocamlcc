@@ -233,8 +233,8 @@
   /* See ocamlcc-apply.c */
 
 #define RETURN(src)                             \
-  ocamlcc_return(src)
-  /* See ocamlcc-apply.c */
+  caml_extern_sp = sp;                          \
+  return (src);
 
 
 /* Allocation of blocks */

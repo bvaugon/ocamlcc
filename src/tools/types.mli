@@ -10,7 +10,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-type arch = NO_ARCH | X86 | X86_64
+type arch = ALL_ARCH | NO_ARCH | X86 | X86_64
 
 type sigconf = Reactive | Efficient
 

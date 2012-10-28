@@ -13,9 +13,35 @@
 open Printf;;
 open Types;;
 
-let attribute = "__attribute__((noinline))";;
+module NO_ARCH = struct
+  let gen_store_args oc n =
+    fprintf oc "\
+#define ocamlcc_store_args_%d(" n;
+    if n >= 2 then (
+      fprintf oc "a2";
+      for i = 3 to n do fprintf oc ", a%d" i done;
+    );
+    fprintf oc ") { \\\n";
+    if n >= 3 then (
+      fprintf oc "  ocamlcc_store_args_%d(a2" (n - 1);
 
-module X_ALL = struct
+      for i = 3 to n - 1 do fprintf oc ", a%d" i done;
+      fprintf oc "); \\\n"
+    );
+    if n >= 2 then (
+      fprintf oc "  ocamlcc_global_params[%d] = a%d; \\\n" (n - 2) n;
+    );
+    fprintf oc "}\n\n";
+  ;;
+
+  let gen_applies oc max_arity =
+    for i = 1 to max_arity do
+      gen_store_args oc i;
+    done;
+  ;;
+end;;
+
+module X86X = struct
   let gen_fun_type oc n =
     fprintf oc "typedef value (*ocamlcc_fun_%d)(value arg1," n;
     for i = 2 to n do
@@ -28,7 +54,7 @@ module X_ALL = struct
   let gen_fun_apply oc n max_arity =
     fprintf oc "value ocamlcc_apply_%d(value arg1" n;
     for i = 2 to n do fprintf oc ", value arg%d" i done;
-    fprintf oc ", value closure) %s;\n" attribute;
+    fprintf oc ", value closure) %s;\n" Tools.noinline;
     fprintf oc "value ocamlcc_apply_%d(value arg1" n;
     for i = 2 to n do fprintf oc ", value arg%d" i done;
     fprintf oc ", value closure) {\n";
@@ -197,38 +223,10 @@ module X_ALL = struct
   ;;
 end;;
 
-module NO_ARCH = struct
-  let gen_store_args oc n =
-    fprintf oc "\
-#define ocamlcc_store_args_%d(" n;
-    if n >= 2 then (
-      fprintf oc "a2";
-      for i = 3 to n do fprintf oc ", a%d" i done;
-    );
-    fprintf oc ") { \\\n";
-    if n >= 3 then (
-      fprintf oc "  ocamlcc_store_args_%d(a2" (n - 1);
-
-      for i = 3 to n - 1 do fprintf oc ", a%d" i done;
-      fprintf oc "); \\\n"
-    );
-    if n >= 2 then (
-      fprintf oc "  ocamlcc_global_params[%d] = a%d; \\\n" (n - 2) n;
-    );
-    fprintf oc "}\n\n";
-  ;;
-
-  let gen_applies oc max_arity =
-    for i = 1 to max_arity do
-      gen_store_args oc i;
-    done;
-  ;;
-end;;
-
 let gen_applies oc max_arity =
   match !Options.arch with
-    | NO_ARCH ->
+    | ALL_ARCH | NO_ARCH ->
       NO_ARCH.gen_applies oc max_arity
-    | _ ->
-      X_ALL.gen_applies oc max_arity
+    | X86 | X86_64 ->
+      X86X.gen_applies oc max_arity
 ;;

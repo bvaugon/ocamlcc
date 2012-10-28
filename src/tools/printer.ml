@@ -16,9 +16,10 @@ open Tools
 
 let print_arch oc arch =
   match arch with
-    | NO_ARCH -> output_string oc "NONE"
-    | X86 -> output_string oc "X86"
-    | X86_64 -> output_string oc "X86_64"
+    | ALL_ARCH -> output_string oc "ALL"
+    | NO_ARCH  -> output_string oc "NONE"
+    | X86      -> output_string oc "X86"
+    | X86_64   -> output_string oc "X86_64"
 ;;
 
 let print_sigconf oc sigconf =

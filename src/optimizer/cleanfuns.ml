@@ -39,7 +39,7 @@ let search_funs performed tosearch states read_set body =
   f 0 tosearch
 ;;
 
-let clean_functions funs dzeta_code =
+let clean_functions funs dzeta_code fun_tys =
   Options.verb_start "+ Cleaning functions.";
   let rec search performed tosearch =
     if ISet.is_empty tosearch then performed else
@@ -56,9 +56,11 @@ let clean_functions funs dzeta_code =
   let used = search ISet.empty (ISet.singleton 0) in
   let filter id _ = ISet.mem id used in
   Options.message ".";
-  let cfuns = IMap.filter filter funs in
+  let new_funs = IMap.filter filter funs in
   Options.message ".";
-  let cdzeta_code = IMap.filter filter dzeta_code in
+  let new_dzeta_code = IMap.filter filter dzeta_code in
+  Options.message ".";
+  let new_fun_tys = IMap.filter filter fun_tys in
   Options.verb_stop ();
-  (cfuns, cdzeta_code)
+  (new_funs, new_dzeta_code, new_fun_tys)
 ;;

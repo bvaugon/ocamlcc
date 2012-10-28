@@ -66,6 +66,7 @@ and verb_stop () =
 
 let arch_of_string s =
   match String.lowercase s with
+    | "all" -> ALL_ARCH
     | "none" -> NO_ARCH
     | "x86" | "i386" | "i486" | "i586" | "i686" -> X86
     | "x86-64" | "x86_64" -> X86_64
@@ -74,6 +75,7 @@ let arch_of_string s =
 
 let string_of_arch a =
   match a with
+    | ALL_ARCH -> "all"
     | NO_ARCH -> "none"
     | X86 -> "x86"
     | X86_64 -> "x86_64"
@@ -93,10 +95,8 @@ let except_of_string s =
     | _ -> invalid_arg "except_of_string"
 ;;
 
-(*
 try arch := arch_of_string Config.default_arch
 with Invalid_argument _ -> arch := NO_ARCH;;
-*)
 
 let default_arch = string_of_arch !arch;;
 

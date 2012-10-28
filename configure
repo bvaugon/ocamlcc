@@ -96,7 +96,7 @@ echo "\
 let version = \"$VERSION\";;
 let runtime_version = \"$RUNTIME_VERSION\";;
 let include_dir = \"$INCLUDEDIR/ocamlcc\";;
-let default_arch = \"$ARCH\";;
+let default_arch = \"none\";;
 let ccomp = \"$CCOMP\";;
 " > etc/config.ml
 
