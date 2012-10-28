@@ -30,7 +30,8 @@ let spec =
     ("-cc", Arg.Set_string Options.ccomp,
      Printf.sprintf "<x> Define C compiler (default: %s)" Config.ccomp);
     ("-ccopts", Arg.String Options.add_ccopts,
-     Printf.sprintf "<x> Extra arguments for the C compiler (default: '%s')" ccopts);
+     Printf.sprintf "<x> Extra arguments for the C compiler (default: '%s')"
+       ccopts);
     ("-arch", Arg.String (fun a -> !set_arch a),
      Options.arch_option_doc);
     ("-signal", Arg.String (fun s -> !set_sigconf s),
@@ -161,9 +162,10 @@ let b2c bfile cfile stop =
   Rmclsrs.run funs;
   let (dzeta_code, fun_tys) = Xconst.run prims funs in
   let fact_funs = Factfun.factor_functions funs in
-  let max_arity = Block.compute_maximum_arity fact_funs in
-  Codegen.run cfile prims data dbug funs dzeta_code max_arity;
-  if !Options.stat then Stat.run stdout funs dzeta_code fun_tys;
+  let (cfuns, cdzeta_code) = Fcleaner.clean fact_funs dzeta_code in
+  let max_arity = Block.compute_maximum_arity cfuns in
+  Ccodegen.run cfile prims data dbug cfuns cdzeta_code max_arity;
+  if !Options.stat then Stat.run stdout cfuns cdzeta_code fun_tys;
   if stop then exit 0;
 ;;
 

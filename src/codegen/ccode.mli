@@ -10,7 +10,14 @@
 (*                                                                       *)
 (*************************************************************************)
 
-type macro =
+type instr =
+  | IAffect of lvalue * expr
+  | IMacro of macro
+  | ITrace of trace
+  | ISwitch of switch
+  | ILabel of label
+
+and macro =
   | MOVE of expr * lvalue
   | OFFSETINT of int * expr * lvalue
   | BOOLNOT of expr * lvalue
@@ -49,13 +56,16 @@ type macro =
   | BGEINT of int * expr * label
   | BULTINT of int * expr * label
   | BUGEINT of int * expr * label
-  | DYNAMIC_APPLY of int * int * int * lvalue option * expr list
-  | PARTIAL_APPLY of int * int * int * lvalue option * expr list
-  | STATIC_APPLY of int * int * int * lvalue option * mlfun * expr list
-  | DYNAMIC_APPTERM of int * int * int * expr list
-  | PARTIAL_APPTERM of int * int * int * expr list
-  | SPECIAL_APPTERM of int * int * int * expr list
-  | STATIC_APPTERM of int * mlfun * expr list
+  | DYNAMIC_APPLY of int * int * int * lvalue option * expr * expr list
+  | PARTIAL_APPLY of int * int * int * lvalue option * expr * expr list
+  | STATIC_APPLY of int*int*int*lvalue option * mlfun * expr * expr list
+  | DYNAMIC_STANDARD_APPTERM of int * int * expr * expr list
+  | DYNAMIC_SPECIAL_APPTERM of int * int * int * expr * expr list
+  | PARTIAL_STANDARD_APPTERM of int * int * expr * expr list
+  | PARTIAL_SPECIAL_APPTERM of int * int * int * expr * expr list
+  | SPECIAL_SPECIAL_APPTERM of int * int * int * expr * expr list
+  | STATIC_STANDARD_APPTERM of int * mlfun * expr * expr list
+  | STATIC_SPECIAL_APPTERM of int * int * mlfun * expr * expr list
   | RETURN of expr
   | MAKE_YOUNG_BLOCK of int * int * lvalue * int
   | MAKE_SAVED_YOUNG_BLOCK of lvalue * int * int * lvalue * int
@@ -66,6 +76,7 @@ type macro =
   | MAKE_FLOAT_BLOCK of int * lvalue * int
   | MAKE_SAVED_FLOAT_BLOCK of lvalue * int * lvalue * int
   | SET_YOUNG_FIELD of int * expr * expr
+  | INITFIELD of int * expr * expr
   | SETFIELD of int * expr * expr
   | SETFLOATFIELD of int * expr * expr
   | GETFIELD of int * expr * lvalue
@@ -78,46 +89,67 @@ type macro =
   | PUSHTRAP of lvalue option * label * Tools.Id.t
   | RAISE of expr
   | POPTRAP of int
+  | CATCH_EXCEPTION of label * lvalue option
   | SAVED_POPTRAP of lvalue * int
-  | OFFSETREF of expr * expr
-  | SETVECTITEM of int * expr * expr
-  | SETSTRINGCHAR of int * expr * expr
-  | GETMETHOD of expr * expr * expr
-  | GETPUBMET of expr * expr * expr
-  | GETDYNMET of expr * expr * expr
+  | OFFSETREF of int * expr
+  | SETVECTITEM of expr * expr * expr
+  | SETSTRINGCHAR of expr * expr * expr
+  | GETMETHOD of expr * expr * lvalue
+  | GETPUBMET of int * expr * lvalue
+  | GETDYNMET of expr * expr * lvalue
   | STOP
 
+and trace =
+  | CEnter of string
+  | CQuit of string
+  | MLEnter of mlfun
+  | MLQuit of mlfun
+  | MLAppterm of mlfun
+  | MLRaise
+
 and expr =
-  | Glob of int
-  | GlobField of int * int
-  | Offset of expr * int
-  | Lvalue of lvalue
+  | EVal_unit
+  | EInt of int
+  | EVal_int of int
+  | ETag_val of expr
+  | ELong_val of expr
+  | EIs_block of expr
+  | EGlob of int
+  | EGlobField of int * int
+  | EAtom of int
+  | EOffset of expr * int
+  | EField of expr * int
+  | EParam of int
+  | ECast of ctype * expr
+  | EFunPtr of mlfun
+  | ELvalue of lvalue
+  | EMakeHeader of int * tag * color
 
 and lvalue =
-  | Var of int
-  | SpAcc of int
-
-and mlfun = MLfun of int
-
-and cfun = CFun of string
-
-and label = Label of int
+  | LTmp
+  | LVar of int
+  | LSpAcc of int
 
 and ctype =
-  | Void
-  | Value
-  | PValue
+  | TVoid
+  | TValue
+  | TPValue
+
+and tag = TInfix_tag
+
+and color = CCaml_white
+
+and mlfun = int
+
+and cfun = string
+
+and label = int
 
 and switch = {
   sw_src : expr;
-  sw_long_labels : label list;
-  sw_tag_labels : label list;
+  sw_long_labels : int array;
+  sw_tag_labels : int array;
 }
-
-and instr =
-  | IMacro of macro
-  | ILabel of label
-  | ISwitch of switch
 
 and var_decl = {
   vd_type : ctype;

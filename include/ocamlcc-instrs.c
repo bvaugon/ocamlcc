@@ -228,8 +228,8 @@
   ocamlcc_special_special_appterm(nargs, tc_nargs, curr_fsz, args)
   /* See ocamlcc-apply.c */
 
-#define STATIC_SPECIAL_APPTERM(tc_nargs, f, args...)    \
-  ocamlcc_static_special_appterm(tc_nargs, f, args)
+#define STATIC_SPECIAL_APPTERM(nargs, tc_nargs, f, args...)     \
+  ocamlcc_static_special_appterm(nargs, tc_nargs, f, args)
   /* See ocamlcc-apply.c */
 
 #define RETURN(src)                             \
@@ -382,7 +382,7 @@
 /* Object-oriented operations */
 
 #define GETMETHOD(tag, obj, meth) \
-  meth = Field (Field ((obj), 0), Int_val(tag));
+  (meth) = Field (Field ((obj), 0), Int_val(tag));
 
 #define GETPUBMET(tag, obj, meth) {                     \
   value meths = Field ((obj), 0);                       \
