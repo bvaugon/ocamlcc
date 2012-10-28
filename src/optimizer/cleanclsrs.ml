@@ -338,7 +338,7 @@ let compute_env_uses used_map funs =
   env_uses2
 ;;
 
-let run funs =
+let clean_closures funs =
   let flag = ref true in
   Options.verb_start "+ Removing unused closures";
   while !flag do

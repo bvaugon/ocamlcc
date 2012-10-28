@@ -39,7 +39,7 @@ let functions oc funs =
       with Not_found -> IMap.add arity 1 arities
     in
     let new_inln_nb =
-      if Block.test_inlinable funs fun_desc then inln_nb + 1 else inln_nb
+      if Body.test_inlinable funs fun_desc then inln_nb + 1 else inln_nb
     in
     (nb+1, tot+sz, min sz mini, max sz maxi, new_arities, new_inln_nb)
   in
@@ -157,7 +157,7 @@ Read cells             -> %6d  (%.2f%% of idents, %.2f%% of cells)\n\n"
     !read_cnt (percentage !read_cnt !id_cnt) (percentage !read_cnt !cell_cnt)
 ;;
 
-let run oc funs dzeta_code fun_tys =
+let analyse oc funs dzeta_code fun_tys =
   print_flag oc " Functions ";
   functions oc funs;
   print_flag oc " Function calls ";

@@ -130,25 +130,6 @@ and cond_branch =
   | Bultint of int * ptr
   | Bugeint of int * ptr
 
-type value =
-  | VString of string
-  | VFloat of float
-  | VFloats of float array
-  | VInt of int
-  | VInt_32 of Int32.t
-  | VInt_64 of Int64.t
-  | VCustom of int array
-  | VBlock of value array * int
-  | VClosure of value array
-  | VOut_of_heap of int
-
-type data = {
-  values : value list;
-  dump : string;
-}
-
-type prim = string array
-
 type orig =
   | OGlobal of int
   | OGlobalField of int * int

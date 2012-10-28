@@ -225,7 +225,7 @@ module NO_ARCH = struct
   ;;
 end;;
 
-let run oc max_arity =
+let gen_applies oc max_arity =
   match !Options.arch with
     | NO_ARCH ->
       NO_ARCH.gen_applies oc max_arity

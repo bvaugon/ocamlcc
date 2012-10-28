@@ -11,7 +11,7 @@
 (*************************************************************************)
 
 open Printf;;
-open Ccode;;
+open Macroc;;
 open Types;;
 open Tools;;
 
@@ -38,7 +38,7 @@ let export_fun_signature oc id use_env arity =
 
 let export_fun_decl_signature oc id use_env inlinable arity =
   export_fun_signature oc id use_env arity;
-  if not inlinable then fprintf oc " %s" Applygen.attribute;
+  if not inlinable then fprintf oc " %s" Apply.attribute;
   fprintf oc ";\n"
 ;;
 
@@ -110,7 +110,7 @@ let export_fun oc prims dbug funs fun_id
   let puti instr = instrs := instr :: !instrs in
   let putm macro = puti (IMacro macro) in
   let catch_list = ref [] in
-  let use_env = Block.test_useenv fun_desc in
+  let use_env = Body.test_useenv fun_desc in
   let cfun_arity = if use_env then fun_desc.arity + 1 else fun_desc.arity in
   let is_read id = ISet.mem id read_set in
   let is_ptr id = ISet.mem id ptr_set in
@@ -365,7 +365,7 @@ let export_fun oc prims dbug funs fun_id
             let curr_frame_sz = compute_frame_size ind in
             let next_frame_sz = compute_frame_size (ind + 1) in
             let env =
-              if Block.test_useenv (IMap.find ptr.pointed.index funs) then clsr
+              if Body.test_useenv (IMap.find ptr.pointed.index funs) then clsr
               else EVal_unit
             in
             let dst = get_dst () in
@@ -399,7 +399,7 @@ let export_fun oc prims dbug funs fun_id
 
           | StaticAppterm (nargs, _, ptr) ->
             if !Options.trace then puti (ITrace (MLAppterm fun_id));
-            let useenv = Block.test_useenv (IMap.find ptr.pointed.index funs) in
+            let useenv = Body.test_useenv (IMap.find ptr.pointed.index funs) in
             let env = if useenv then clsr else EVal_unit in
             let callee_nargs = if useenv then nargs + 1 else nargs in
             if
@@ -766,7 +766,7 @@ let export_fun oc prims dbug funs fun_id
   export_fun_declarations oc fun_desc.arity var_nb use_tmp arg_depths read_args;
   export_fun_init oc use_env fun_desc.arity arg_depths read_args;
   Array.iteri export_instr body;
-  List.iter (Ccodepp.print_instr oc) (List.rev !instrs);
+  List.iter (Mcprinter.print_instr oc) (List.rev !instrs);
   export_fun_foot oc;
   assert (!catch_list = []);
 ;;
@@ -775,8 +775,8 @@ let export oc prims dbug funs dzeta_code =
   let main = IMap.find 0 dzeta_code in
   let rest = IMap.remove 0 dzeta_code in
   let f id (fd, _, _, _, _, _) =
-    export_fun_decl_signature oc id (Block.test_useenv fd)
-      (Block.test_inlinable funs fd) fd.arity
+    export_fun_decl_signature oc id (Body.test_useenv fd)
+      (Body.test_inlinable funs fd) fd.arity
   in
   (*Printer.print_dzeta_code stdout dzeta_code;*)
   IMap.iter f rest;
@@ -785,12 +785,12 @@ let export oc prims dbug funs dzeta_code =
   export_fun oc prims dbug funs 0 main;
 ;;
 
-let run output_C_file prims data dbug funs dzeta_code max_arity =
+let gen_code output_C_file prims data dbug funs dzeta_code max_arity =
   Options.verb_start "+ Generating %S..." output_C_file;
   let oc = open_out output_C_file in
   if !Options.no_main then Printf.fprintf oc "#define OCAMLCC_NO_MAIN\n";
   Printf.fprintf oc "#define OCAMLCC_GLOBAL_DATA_LENGTH %d\n"
-    (String.length data.dump);
+    (String.length data);
   Printf.fprintf oc "#define OCAMLCC_MAXIMUM_ARITY %d\n" max_arity;
   Printf.fprintf oc "#define OCAMLCC_ARCH_%a\n" Printer.print_arch
     !Options.arch;
@@ -823,7 +823,7 @@ let run output_C_file prims data dbug funs dzeta_code max_arity =
   Printf.fprintf oc "#include <ocamlcc.h>\n\n";
   Data.export oc data;
   Printf.fprintf oc "\n";
-  Applygen.run oc max_arity;
+  Apply.gen_applies oc max_arity;
   export oc prims dbug funs dzeta_code;
   close_out oc;
   Options.verb_stop ();

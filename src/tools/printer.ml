@@ -176,61 +176,6 @@ let print_code oc code =
   Array.iter (print_instr oc) code;
 ;;
 
-let print_value oc value =
-  let rec f value =
-    match value with
-      | VString str -> Printf.fprintf oc "%S" str
-      | VFloat f    -> Printf.fprintf oc "%f" f
-      | VFloats tbl ->
-        Printf.fprintf oc "[|";
-        Array.iter (Printf.fprintf oc " %f ") tbl;
-        Printf.fprintf oc "|]";
-      | VInt n      -> Printf.fprintf oc "%d" n
-      | VInt_32 n -> Printf.fprintf oc "%ld : Int32.t" n
-      | VInt_64 n -> Printf.fprintf oc "%Ld : Int64.t" n
-      | VCustom tab ->
-        output_string oc "custom block: [| ";
-        for i = 0 to Array.length tab - 1 do
-          Printf.fprintf oc "%02x" tab.(i / 4 * 4 + 3 - i mod 4);
-          if i mod 4 = 3 then output_char oc ' ';
-        done;
-        output_string oc "|]";
-      | VBlock (tab, tag) ->
-        Printf.fprintf oc "[%d|" tag;
-        Array.iter
-          (fun e -> output_char oc ' ' ; f e ; output_char oc ' ')
-          tab;
-        Printf.fprintf oc "|%d]" tag;
-      | VClosure tab ->
-        Printf.fprintf oc "Closure [|";
-        Array.iter
-          (fun e -> output_char oc ' ' ; f e ; output_char oc ' ')
-          tab;
-        Printf.fprintf oc "|]";
-      | VOut_of_heap p -> Printf.fprintf oc "@0x%08x" p;
-  in
-  f value
-;;
-
-let print_data oc { values = values ; dump = _ } =
-  let rec print_values i values =
-    match values with
-      | value :: others ->
-        Printf.fprintf oc "%-3d   " i;
-        print_value oc value;
-        output_char oc '\n';
-        print_values (i + 1) others;
-      | [] -> ()
-  in
-  Printf.fprintf oc "\n\
-*********************\n\
-***  Global data  ***\n\
-*********************\n\
-\n\
-";
-  print_values 0 values
-;;
-
 let print_prim oc prim =
   Printf.fprintf oc "\n\
 *******************\n\

@@ -11,7 +11,7 @@
 (*************************************************************************)
 
 open Printf
-open Ccode
+open Macroc
 open Types
 
 let rec print_instr oc instr =

@@ -39,7 +39,7 @@ let search_funs performed tosearch states read_set body =
   f 0 tosearch
 ;;
 
-let clean funs dzeta_code =
+let clean_functions funs dzeta_code =
   Options.verb_start "+ Cleaning functions.";
   let rec search performed tosearch =
     if ISet.is_empty tosearch then performed else

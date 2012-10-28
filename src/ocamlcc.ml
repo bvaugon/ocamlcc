@@ -153,19 +153,19 @@ let cc_run args =
 
 let b2c bfile cfile stop =
   let (prims, data, code, dbug) = Loader.load bfile in
-  let funs = Block.create code in
+  let funs = Body.create code in
   (* WARNING: compute_applies must be called before remap_stack *)
   (* WARNING: compute_applies change bytecode in place *)
-  Static.compute_applies data funs;
+  Propag.compute_applies data funs;
   (* WARNING: remap_stack change bytecode in place *)
-  Stkmap.remap_stack funs;
-  Rmclsrs.run funs;
-  let (dzeta_code, fun_tys) = Xconst.run prims funs in
-  let fact_funs = Factfun.factor_functions funs in
-  let (cfuns, cdzeta_code) = Fcleaner.clean fact_funs dzeta_code in
-  let max_arity = Block.compute_maximum_arity cfuns in
-  Ccodegen.run cfile prims data dbug cfuns cdzeta_code max_arity;
-  if !Options.stat then Stat.run stdout cfuns cdzeta_code fun_tys;
+  Remapstk.remap_stack funs;
+  Cleanclsrs.clean_closures funs;
+  let (dzeta_code, fun_tys) = Xconst.extract_constants prims funs in
+  let fact_funs = Factfuns.factor_functions funs in
+  let (cfuns, cdzeta_code) = Cleanfuns.clean_functions fact_funs dzeta_code in
+  let max_arity = Body.compute_maximum_arity cfuns in
+  Codegen.gen_code cfile prims data dbug cfuns cdzeta_code max_arity;
+  if !Options.stat then Stat.analyse stdout cfuns cdzeta_code fun_tys;
   if stop then exit 0;
 ;;
 

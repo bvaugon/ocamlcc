@@ -182,15 +182,12 @@ let merge desc_set_tbl =
   desc_option_tbl
 ;;
 
-let check_globals { values = values ; dump = _ } funs =
-  let len = List.length values in
-  let checks = Array.make len (0, true, true) in
-  let rec throw_values i vs = match vs with
-    | [] -> ()
-    | VInt 0 :: rest ->
-      checks.(i) <- (0, false, false); throw_values (i + 1) rest
-    | _ :: rest ->
-      throw_values (i + 1) rest
+let check_globals data funs =
+  let glob : Obj.t array = Marshal.from_string data 0 in
+  let len = Array.length glob in
+  let checks =
+    let f o = if Obj.is_int o then (0, false, false) else (0, true, true) in
+    Array.map f glob
   in
   let check_instr instr = match instr.bc with
     | Setglobal n ->
@@ -211,7 +208,6 @@ let check_globals { values = values ; dump = _ } funs =
   let filter (set_count, glob, glob_field) =
     set_count = 1 && (glob || glob_field) && not (glob && glob_field)
   in
-  throw_values 0 values;
   IMap.iter (fun _ fd -> check_body fd.body) funs;
   Array.map filter checks
 ;;

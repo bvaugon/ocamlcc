@@ -18,7 +18,7 @@ let load input_file =
   Options.message ".";
   let prims = Prim.parse ic index in
   Options.message ".";
-  let data = Data.parse ic index in
+  let data = Data.dump ic index in
   Options.message ".";
   let code = Code.parse ic index in
   Options.message ".";

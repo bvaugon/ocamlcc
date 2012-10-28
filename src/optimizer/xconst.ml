@@ -680,7 +680,7 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
   (ptr_set, read_set, ptr_res, read_args)
 ;;
 
-let run prims funs =
+let extract_constants prims funs =
   let () = Options.verb_start "+ Computing cell types" in
   let compute_arg_ids arity states =
     match states.(0) with
