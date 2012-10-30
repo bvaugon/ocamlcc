@@ -18,10 +18,13 @@ let compute_ptrs code =
   let indirect = Array.make nb_bc None in
   let grep_instr instr = indirect.(instr.addr) <- Some instr in
   let search bc_ind =
-    if bc_ind < 0 || bc_ind >= nb_bc then failwith "invalid offset";
+    if bc_ind < 0 || bc_ind >= nb_bc then
+      failwith "invalid bytecode executable file (bad code pointer offset)";
     match indirect.(bc_ind) with
-      | None -> failwith "invalid offset";
-      | Some instr -> instr
+      | None ->
+        failwith "invalid bytecode executable file (bad code pointer offset)"
+      | Some instr ->
+        instr
   in
   let affect_ptr instr =
     let update_pointed delta ptr =
@@ -59,7 +62,8 @@ let compute_ptrs code =
 let parse ic index =
   let (offset, length) =
     try Index.find_section index Code
-    with Not_found -> failwith "code section not found"
+    with Not_found ->
+      failwith "invalid bytecode executable file (CODE section not found)"
   in
   seek_in ic offset;
   let cpt = ref 0 in
@@ -77,7 +81,7 @@ let parse ic index =
       match Sys.word_size with
         | 32 -> res
         | 64 -> (res lsl 32) asr 32
-        | ws -> failwith (Printf.sprintf "Unsupported architecture: \
+        | ws -> failwith (Printf.sprintf "unsupported architecture: \
 word size is %d" ws)
   in
   let rec f acc =

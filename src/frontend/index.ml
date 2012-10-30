@@ -34,11 +34,15 @@ let parse ic =
       | "SYMB" -> Symb
       | "CRCS" -> Crcs
       | "DBUG" -> Dbug
-      | _ -> failwith (Printf.sprintf "invalid section name: `%s'" buf4)
+      | _ ->
+        failwith (Printf.sprintf
+          "invalid bytecode executable file (unknown section name: `%s')"
+          buf4)
   in
   seek_in ic (file_length - magic_size);
   really_input ic buf_magic 0 magic_size;
-  if buf_magic <> magic_str then failwith "invalid magic";
+  if buf_magic <> magic_str then
+    failwith "invalid bytecode executable file (unknown magic string)";
   let size = read_int (file_length - magic_size - 4) in
   let rec f ind next_offset rem =
     if ind <> -1 then

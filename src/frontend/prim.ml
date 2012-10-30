@@ -16,7 +16,8 @@ open Tools
 let parse ic index =
   let (offset, length) =
     try Index.find_section index Prim
-    with Not_found -> failwith "prim section not found"
+    with Not_found ->
+      failwith "invalid bytecode executable file (PRIM section not found)"
   in
   seek_in ic offset;
   let buf = Buffer.create 16 in
@@ -33,7 +34,8 @@ let parse ic index =
         Buffer.clear buf;
         f (i + 1) (name :: res)
     else if Buffer.length buf <> 0 then
-      failwith "unexpected end of prim section"
+      failwith
+        "invalid bytecode executable file (unexpected end of PRIM section)"
     else
       res
   in

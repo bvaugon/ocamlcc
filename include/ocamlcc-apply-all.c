@@ -211,23 +211,23 @@ value ocamlcc_apply_gen(value closure, long nargs, value args[]) {
 
 /***/
 
-#define ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, arg1, \
-                                        env, args...)                   \
-  caml_extern_sp = sp;                                                  \
-  ocamlcc_store_args_##nargs(rest);                                     \
-  ocamlcc_tailcall_arg_nb = nargs;                                      \
-  ocamlcc_tailcall_closure = env;                                       \
+#define ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, env, \
+                                        arg1, args...)                  \
+  ocamlcc_dynamic_standard_appterm(nargs, curr_fsz, env, arg1, args)
 
 
-#define ocamlcc_partial_special_appterm(nargs, tc_nargs, curr_fsz, arg1, \
-                                        env, args...)                   \
-  ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, arg1, env, args)
+#define ocamlcc_partial_special_appterm(nargs, tc_nargs, curr_fsz, env, \
+                                        arg1, args...)                  \
+  ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, env, arg1, args)
 
-#define ocamlcc_static_special_appterm(nargs, tc_nargs, f, args...)
+#define ocamlcc_static_special_appterm(nargs, tc_nargs, f, env, args...) \
+  ocamlcc_static_standard_appterm(nargs, f, env, args)
 
 /***/
 
-#define ocamlcc_special_special_appterm(nargs, tc_nargs, curr_fsz, args...) \
+#define ocamlcc_special_special_appterm(nargs, tc_nargs, curr_fsz, env, \
+                                        arg1, args...)                  \
+  ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, env, arg1, args)
 
 /***/
 

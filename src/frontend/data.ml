@@ -15,7 +15,8 @@ open Types
 let dump ic index =
   let (offset, length) =
     try Index.find_section index Data
-    with Not_found -> failwith "code section not found"
+    with Not_found ->
+      failwith "invalid bytecode executable file (DATA section not found)"
   in
   let buf = String.create length in
   seek_in ic offset;

@@ -216,8 +216,9 @@ let parse read =
       | 143 -> [ Stop ]
       | 144 -> assert false
       | 145 -> assert false
-      | _ -> failwith (sprintf "invalid opcode: %d" opcode)
-  with End_of_file -> failwith "unexpected end of code section"
+      | _ -> failwith (sprintf "invalid bytecode (unknown opcode: %d)" opcode)
+  with End_of_file ->
+    failwith "invalid bytecode (unexpected end of CODE section)"
 ;;
 
 let hcode_of_bc bc =

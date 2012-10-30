@@ -186,6 +186,7 @@ try
   );
   exit ret_code
 with Failure msg | Sys_error msg ->
-  Printf.eprintf " fail\nError: %s\n" msg;
+  Options.message " fail\n";
+  Printf.eprintf "Error: %s.\n" msg;
   exit 1;
 ;;
