@@ -176,7 +176,7 @@ end;;
 
 let generate oc max_arity =
   match !Options.arch with
-    | ALL_ARCH -> ()
+    | GEN_ARCH -> ()
     | NO_ARCH  -> ()
     | X86      -> X86.generate oc max_arity
     | X86_64   -> X86_64.generate oc max_arity

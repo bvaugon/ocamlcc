@@ -23,7 +23,7 @@ extern "C" {
 #include "ocamlcc-unimpl.c"
 #include "ocamlcc-instrs.c"
 #include "ocamlcc-alloc.c"
-#include "ocamlcc-apply-all.c"
+#include "ocamlcc-apply-gen.c"
 #include "ocamlcc-apply-none.c"
 #include "ocamlcc-apply-x86x.c"
 #include "ocamlcc-main.c"

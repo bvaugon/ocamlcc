@@ -28,7 +28,7 @@ let export_fun_signature oc id use_env arity =
     match !Options.arch with
       | NO_ARCH ->
         fprintf oc "static value f%d(value p0)" id;
-      | ALL_ARCH | X86 | X86_64 ->
+      | GEN_ARCH | X86 | X86_64 ->
         fprintf oc "static value f%d(value p0" id;
         for i = 1 to arity - 1 do fprintf oc ", value p%d" i; done;
         if use_env then fprintf oc ", value env)"
@@ -64,7 +64,7 @@ let export_fun_declarations oc arity var_nb use_tmp arg_depths read_args =
         cnt := 0;
         fprintf oc ";\n";
       );
-    | ALL_ARCH | X86 | X86_64 -> ()
+    | GEN_ARCH | X86 | X86_64 -> ()
   end;
   for i = 0 to var_nb - 1 do print 'v' i done;
   if !cnt <> 0 then fprintf oc ";\n";
@@ -88,7 +88,7 @@ let export_fun_init oc use_env arity arg_depths read_args =
           if i <> 0 && ISet.mem i read_args then
             fprintf oc "  p%d = ocamlcc_global_params[%d];\n" i (i - 1);
       done;
-    | ALL_ARCH | X86 | X86_64 ->
+    | GEN_ARCH | X86 | X86_64 ->
       if use_env then fprintf oc "  sp[-1] = env;\n";
       for i = 0 to arity - 1 do
         try
@@ -351,26 +351,25 @@ let export_fun oc prims dbug funs fun_id
             let curr_frame_sz = compute_frame_size ind in
             let next_frame_sz = compute_frame_size (ind + 1) in
             let dst = get_dst () in
-            putm (DYNAMIC_APPLY (nargs, curr_frame_sz, next_frame_sz, dst,
-                                 clsr, args));
+            putm (DYNAMIC_APPLY (nargs, nargs + 1, curr_frame_sz, next_frame_sz,
+                                 dst, clsr, args));
 
           | PartialApply _ ->
             let curr_frame_sz = compute_frame_size ind in
             let next_frame_sz = compute_frame_size (ind + 1) in
             let dst = get_dst () in
-            putm (PARTIAL_APPLY (nargs, curr_frame_sz, next_frame_sz, dst,
-                                 clsr, args));
+            putm (PARTIAL_APPLY (nargs, nargs + 1, curr_frame_sz, next_frame_sz,
+                                 dst, clsr, args));
 
           | StaticApply (_, ptr) ->
             let curr_frame_sz = compute_frame_size ind in
             let next_frame_sz = compute_frame_size (ind + 1) in
-            let env =
-              if Body.test_useenv (IMap.find ptr.pointed.index funs) then clsr
-              else EVal_unit
-            in
+            let useenv = Body.test_useenv (IMap.find ptr.pointed.index funs) in
+            let cfun_nargs = if useenv then nargs + 1 else nargs in
+            let env = if useenv then clsr else EVal_unit in
             let dst = get_dst () in
-            putm (STATIC_APPLY (nargs, curr_frame_sz, next_frame_sz, dst,
-                                ptr.pointed.index, env, args));
+            putm (STATIC_APPLY (nargs, cfun_nargs, curr_frame_sz, next_frame_sz,
+                                dst, ptr.pointed.index, env, args));
 
           | DynamicAppterm (nargs, _) ->
             if !Options.trace then puti (ITrace (MLAppterm fun_id));
@@ -380,16 +379,18 @@ let export_fun oc prims dbug funs fun_id
               putm (DYNAMIC_SPECIAL_APPTERM (nargs, nargs + 1, curr_frame_sz,
                                              clsr, args))
             else
-              putm (DYNAMIC_STANDARD_APPTERM (nargs, curr_frame_sz, clsr, args))
+              putm (DYNAMIC_STANDARD_APPTERM (nargs, nargs + 1, curr_frame_sz,
+                                              clsr, args))
 
           | PartialAppterm (nargs, _) ->
             if !Options.trace then puti (ITrace (MLAppterm fun_id));
             let curr_frame_sz = compute_frame_size ind in
             if nargs >= cfun_arity then
-              putm (PARTIAL_SPECIAL_APPTERM(nargs, nargs+1, curr_frame_sz,
+              putm (PARTIAL_SPECIAL_APPTERM(nargs, nargs + 1, curr_frame_sz,
                                             clsr, args))
             else
-              putm (PARTIAL_STANDARD_APPTERM (nargs, curr_frame_sz, clsr, args))
+              putm (PARTIAL_STANDARD_APPTERM (nargs, nargs + 1, curr_frame_sz,
+                                              clsr, args))
 
           | SpecialAppterm _ ->
             if !Options.trace then puti (ITrace (MLAppterm fun_id));
@@ -409,8 +410,8 @@ let export_fun oc prims dbug funs fun_id
               putm (STATIC_SPECIAL_APPTERM (nargs, callee_nargs,
                                             ptr.pointed.index, env, args))
             else
-              putm (STATIC_STANDARD_APPTERM(nargs, ptr.pointed.index, env,
-                                            args));
+              putm (STATIC_STANDARD_APPTERM(nargs, callee_nargs,
+                                            ptr.pointed.index, env, args));
 
           | _ -> assert false
         end;
@@ -804,7 +805,7 @@ let gen_code output_C_file prims data dbug funs dzeta_code max_arity =
     "  #error - Incompatible code: compiler should be GNU C compatible\n";
   Printf.fprintf oc "#endif\n";
   begin match !Options.arch with
-    | ALL_ARCH | NO_ARCH -> ()
+    | GEN_ARCH | NO_ARCH -> ()
     | X86 ->
       Printf.fprintf oc
         "#if (!defined(__i386__) && !defined(__i486__)     \\\n     \

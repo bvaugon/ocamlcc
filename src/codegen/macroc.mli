@@ -56,16 +56,17 @@ and macro =
   | BGEINT of int * expr * label
   | BULTINT of int * expr * label
   | BUGEINT of int * expr * label
-  | DYNAMIC_APPLY of int * int * int * lvalue option * expr * expr list
-  | PARTIAL_APPLY of int * int * int * lvalue option * expr * expr list
-  | STATIC_APPLY of int*int*int*lvalue option * mlfun * expr * expr list
-  | DYNAMIC_STANDARD_APPTERM of int * int * expr * expr list
+  | DYNAMIC_APPLY of int * int * int * int * lvalue option * expr * expr list
+  | PARTIAL_APPLY of int * int * int * int * lvalue option * expr * expr list
+  | STATIC_APPLY of int * int * int * int * lvalue option * mlfun * expr *
+      expr list
+  | DYNAMIC_STANDARD_APPTERM of int * int * int * expr * expr list
   | DYNAMIC_SPECIAL_APPTERM of int * int * int * expr * expr list
-  | PARTIAL_STANDARD_APPTERM of int * int * expr * expr list
+  | PARTIAL_STANDARD_APPTERM of int * int * int * expr * expr list
   | PARTIAL_SPECIAL_APPTERM of int * int * int * expr * expr list
-  | SPECIAL_SPECIAL_APPTERM of int * int * int * expr * expr list
-  | STATIC_STANDARD_APPTERM of int * mlfun * expr * expr list
+  | STATIC_STANDARD_APPTERM of int * int * mlfun * expr * expr list
   | STATIC_SPECIAL_APPTERM of int * int * mlfun * expr * expr list
+  | SPECIAL_SPECIAL_APPTERM of int * int * int * expr * expr list
   | RETURN of expr
   | MAKE_YOUNG_BLOCK of int * int * lvalue * int
   | MAKE_SAVED_YOUNG_BLOCK of lvalue * int * int * lvalue * int

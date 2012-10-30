@@ -13,6 +13,64 @@
 open Printf;;
 open Types;;
 
+module GEN_ARCH = struct
+  let gen_exec_closure oc max_arity =
+    fprintf oc "\
+static value ocamlcc_exec_closure(long nargs, value closure) {\n\
+\  switch(nargs) {\n\
+";
+    for i = 1 to max_arity do
+      if i < max_arity then fprintf oc "\
+\    case %d:\n\
+" i
+      else fprintf oc "\
+\    default:\n\
+";
+      fprintf oc "\
+\      return ((ocamlcc_fun) Field(closure, 0))(\n\
+";
+      for j = 1 to i do
+        fprintf oc "\
+\        ocamlcc_global_params[%d],\n\
+" (j - 1);
+      done;
+      fprintf oc "\
+\        closure);\n\
+"
+    done;
+    fprintf oc "\
+\  }\n\
+}\n\n";
+  ;;
+
+  let gen_store_args oc n =
+    fprintf oc "\
+#define ocamlcc_store_args_%d(" n;
+    if n >= 1 then (
+      fprintf oc "a1";
+      for i = 2 to n do fprintf oc ", a%d" i done;
+    );
+    fprintf oc ") { \\\n";
+    if n >= 2 then (
+      fprintf oc "  ocamlcc_store_args_%d(a1" (n - 1);
+
+      for i = 2 to n - 1 do fprintf oc ", a%d" i done;
+      fprintf oc "); \\\n"
+    );
+    if n >= 1 then (
+      fprintf oc "  ocamlcc_global_params[%d] = a%d; \\\n" (n - 1) n;
+    );
+    fprintf oc "}\n\n";
+  ;;
+
+  let gen_applies oc max_arity =
+    gen_exec_closure oc max_arity;
+    for i = 0 to max_arity do
+      gen_store_args oc i;
+    done;
+  ;;
+end;;
+
 module NO_ARCH = struct
   let gen_store_args oc n =
     fprintf oc "\
@@ -225,7 +283,9 @@ end;;
 
 let gen_applies oc max_arity =
   match !Options.arch with
-    | ALL_ARCH | NO_ARCH ->
+    | GEN_ARCH ->
+      GEN_ARCH.gen_applies oc max_arity
+    | NO_ARCH ->
       NO_ARCH.gen_applies oc max_arity
     | X86 | X86_64 ->
       X86X.gen_applies oc max_arity

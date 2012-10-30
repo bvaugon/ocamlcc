@@ -16,7 +16,7 @@ open Tools
 
 let print_arch oc arch =
   match arch with
-    | ALL_ARCH -> output_string oc "ALL"
+    | GEN_ARCH -> output_string oc "GEN"
     | NO_ARCH  -> output_string oc "NONE"
     | X86      -> output_string oc "X86"
     | X86_64   -> output_string oc "X86_64"

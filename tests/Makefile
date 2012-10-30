@@ -24,10 +24,12 @@ MLS = $(wildcard *.ml)
 BYTES = $(MLS:.ml=.byte)
 NATIVES = $(MLS:.ml=.native)
 CS = $(BYTES:.byte=.c)
+GENCS = $(BYTES:.byte=-gen.c)
 NXCCS = $(BYTES:.byte=-nxc.c)
 ARCHCS = $(BYTES:.byte=-$(ARCH).c)
 NXCARCHCS = $(BYTES:.byte=-nxc-$(ARCH).c)
 S = $(CS:.c=)
+GENS=$(GENCS:.c=)
 NXCS=$(NXCCS:.c=)
 ARCHS=$(ARCHCS:.c=)
 NXCARCHS=$(NXCARCHCS:.c=)
@@ -59,10 +61,10 @@ endif
 ###
 
 ifeq ($(MANAGED_ARCH), true)
-TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NXCCS) $(NXCS) $(ARCHCS) $(ARCHS) \
-	$(NXCARCHCS) $(NXCARCHS)
+TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(GENCS) $(GENS) $(NXCCS) $(NXCS) \
+	 $(ARCHCS) $(ARCHS) $(NXCARCHCS) $(NXCARCHS)
 else
-TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NXCCS) $(NXCS)
+TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(GENCS) $(GENS) $(NXCCS) $(NXCS)
 endif
 
 ###
@@ -87,6 +89,9 @@ check-project:
 %-nxc.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch NONE -no-xconst $< -o $@
 
+%-gen.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN $< -o $@
+
 %-$(ARCH).c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
 
@@ -103,6 +108,9 @@ ocamlc.c: $(OCAMLC) check-project
 
 ocamlc-nxc.c: $(OCAMLC) check-project
 	$(OCAMLCC) -c -verbose -stat -arch NONE -no-xconst $< -o $@
+
+ocamlc-gen.c: $(OCAMLC) check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN $< -o $@
 
 ocamlc-$(ARCH).c: $(OCAMLC) check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
@@ -140,9 +148,9 @@ floco%: floco%.c check-project
 clean:
 	@rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) ocamlc.c ocamlc ocamlc-nxc.c \
 	  ocamlc-nxc ocamlc-$(ARCH).c ocamlc-$(ARCH) ocamlc-nxc-$(ARCH).c \
-	  ocamlc-nxc-$(ARCH) a.out
+	  ocamlc-nxc-$(ARCH) ocamlc-gen.c ocamlc-gen a.out
 
 ###
 
 .PHONY: tests check-project clean
-.PRESERVE: ocamlc.c
+.PRESERVE: $(TARGS)

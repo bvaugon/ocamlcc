@@ -122,36 +122,37 @@ and print_macro oc macro =
       fprintf oc "BULTINT(%d, %a, %a)" n print_expr src print_label lab
     | BUGEINT (n, src, lab) ->
       fprintf oc "BUGEINT(%d, %a, %a)" n print_expr src print_label lab
-    | DYNAMIC_APPLY (nargs, curr_fsz, next_fsz, dst, env, args) ->
-      fprintf oc "DYNAMIC_APPLY(%d, %d, %d, %a, %a)" nargs curr_fsz
-        next_fsz print_lvalue_opt dst print_env_args (env, args)
-    | PARTIAL_APPLY (nargs, curr_fsz, next_fsz, dst, env, args) ->
-      fprintf oc "PARTIAL_APPLY(%d, %d, %d, %a, %a)" nargs curr_fsz
-        next_fsz print_lvalue_opt dst print_env_args (env, args)
-    | STATIC_APPLY (nargs, curr_fsz, next_fsz, dst, f, env, args) ->
-      fprintf oc "STATIC_APPLY(%d, %d, %d, %a, %a, %a)" nargs curr_fsz
-        next_fsz print_lvalue_opt dst print_mlfun f print_env_args (env, args)
-    | DYNAMIC_STANDARD_APPTERM (nargs, curr_fsz, env, args) ->
-      fprintf oc "DYNAMIC_STANDARD_APPTERM(%d, %d, %a)" nargs
-        curr_fsz print_env_args (env, args)
-    | DYNAMIC_SPECIAL_APPTERM (nargs, tc_nargs, curr_fsz, env, args) ->
-      fprintf oc "DYNAMIC_SPECIAL_APPTERM(%d, %d, %d, %a)" nargs tc_nargs
-        curr_fsz print_env_args (env, args)
-    | PARTIAL_STANDARD_APPTERM (nargs, curr_fsz, env, args) ->
-      fprintf oc "PARTIAL_STANDARD_APPTERM(%d, %d, %a)" nargs
-        curr_fsz print_env_args (env, args)
-    | PARTIAL_SPECIAL_APPTERM (nargs, tc_nargs, curr_fsz, env, args) ->
-      fprintf oc "PARTIAL_SPECIAL_APPTERM(%d, %d, %d, %a)" nargs tc_nargs
-        curr_fsz print_env_args (env, args)
-    | SPECIAL_SPECIAL_APPTERM (nargs, tc_nargs, curr_fsz, env, args) ->
-      fprintf oc "SPECIAL_SPECIAL_APPTERM(%d, %d, %d, %a)" nargs tc_nargs
-        curr_fsz print_env_args (env, args)
-    | STATIC_STANDARD_APPTERM (nargs, f, env, args) ->
-      fprintf oc "STATIC_STANDARD_APPTERM(%d, %a, %a)" nargs
-        print_mlfun f print_env_args (env, args)
-    | STATIC_SPECIAL_APPTERM (nargs, tc_nargs, f, env, args) ->
-      fprintf oc "STATIC_SPECIAL_APPTERM(%d, %d, %a, %a)" nargs tc_nargs
-        print_mlfun f print_env_args (env, args)
+    | DYNAMIC_APPLY (nargs, cfun_nargs, curr_fsz, next_fsz, dst, env, args) ->
+      fprintf oc "DYNAMIC_APPLY(%d, %d, %d, %d, %a, %a)" nargs cfun_nargs
+        curr_fsz next_fsz print_lvalue_opt dst print_env_args (env, args, false)
+    | PARTIAL_APPLY (nargs, cfun_nargs, curr_fsz, next_fsz, dst, env, args) ->
+      fprintf oc "PARTIAL_APPLY(%d, %d, %d, %d, %a, %a)" nargs cfun_nargs
+        curr_fsz next_fsz print_lvalue_opt dst print_env_args (env, args, false)
+    | STATIC_APPLY (nargs, cfun_nargs, curr_fsz, next_fsz, dst, f, env, args) ->
+      fprintf oc "STATIC_APPLY(%d, %d, %d, %d, %a, %a, %a)" nargs cfun_nargs
+        curr_fsz next_fsz print_lvalue_opt dst print_mlfun f
+        print_env_args (env, args, true)
+    | DYNAMIC_STANDARD_APPTERM (nargs, cfun_nargs, curr_fsz, env, args) ->
+      fprintf oc "DYNAMIC_STANDARD_APPTERM(%d, %d, %d, %a)" nargs cfun_nargs
+        curr_fsz print_env_args (env, args, false)
+    | DYNAMIC_SPECIAL_APPTERM (nargs, cfun_nargs, curr_fsz, env, args) ->
+      fprintf oc "DYNAMIC_SPECIAL_APPTERM(%d, %d, %d, %a)" nargs cfun_nargs
+        curr_fsz print_env_args (env, args, false)
+    | PARTIAL_STANDARD_APPTERM (nargs, cfun_nargs, curr_fsz, env, args) ->
+      fprintf oc "PARTIAL_STANDARD_APPTERM(%d, %d, %d, %a)" nargs cfun_nargs
+        curr_fsz print_env_args (env, args, false)
+    | PARTIAL_SPECIAL_APPTERM (nargs, cfun_nargs, curr_fsz, env, args) ->
+      fprintf oc "PARTIAL_SPECIAL_APPTERM(%d, %d, %d, %a)" nargs cfun_nargs
+        curr_fsz print_env_args (env, args, false)
+    | STATIC_STANDARD_APPTERM (nargs, cfun_nargs, f, env, args) ->
+      fprintf oc "STATIC_STANDARD_APPTERM(%d, %d, %a, %a)" nargs cfun_nargs
+        print_mlfun f print_env_args (env, args, true)
+    | STATIC_SPECIAL_APPTERM (nargs, cfun_nargs, f, env, args) ->
+      fprintf oc "STATIC_SPECIAL_APPTERM(%d, %d, %a, %a)" nargs cfun_nargs
+        print_mlfun f print_env_args (env, args, false)
+    | SPECIAL_SPECIAL_APPTERM (nargs, cfun_nargs, curr_fsz, env, args) ->
+      fprintf oc "SPECIAL_SPECIAL_APPTERM(%d, %d, %d, %a)" nargs cfun_nargs
+        curr_fsz print_env_args (env, args, false)
     | RETURN src ->
       fprintf oc "RETURN(%a)" print_expr src
     | MAKE_YOUNG_BLOCK (size, tag, dst, frame_sz) ->
@@ -258,11 +259,19 @@ and print_args oc args =
     | [ last ] -> print_expr oc last
     | arg :: rest -> fprintf oc "%a, %a" print_expr arg print_args rest
 
-and print_env_args oc (env, args) =
+and print_env_args oc (env, args, is_static) =
   match !Options.arch with
     | NO_ARCH ->
       fprintf oc "%a, %a" print_expr env print_args args
-    | ALL_ARCH | X86 | X86_64 ->
+    | GEN_ARCH ->
+      if is_static then
+        if env <> EVal_unit then
+          fprintf oc "%a, %a" print_args args print_expr env
+        else
+          print_args oc args
+      else
+        fprintf oc "%a, %a" print_expr env print_args args
+    | X86 | X86_64 ->
       if env <> EVal_unit then
         fprintf oc "%a, %a" print_args args print_expr env
       else

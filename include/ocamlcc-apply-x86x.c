@@ -33,55 +33,63 @@
 
 /***/
 
-#define ocamlcc_dynamic_apply(nargs, curr_fsz, next_fsz, dst, args...) {  \
-  ocamlcc_apply_init_stack(curr_fsz, next_fsz);                           \
-  dst ocamlcc_apply_##nargs(args);                                        \
-  ocamlcc_apply_restore_stack(next_fsz);                                  \
+#define ocamlcc_dynamic_apply(nargs, cfun_nargs, curr_fsz, next_fsz,    \
+                              dst, args...) {                           \
+  ocamlcc_apply_init_stack(curr_fsz, next_fsz);                         \
+  dst ocamlcc_apply_##nargs(args);                                      \
+  ocamlcc_apply_restore_stack(next_fsz);                                \
 }
 
-#define ocamlcc_partial_apply(nargs, curr_fsz, next_fsz, dst, args...)  \
-  ocamlcc_dynamic_apply(nargs, curr_fsz, next_fsz, dst, args)
+#define ocamlcc_partial_apply(nargs, cfun_nargs, curr_fsz, next_fsz, \
+                              dst, args...)                          \
+  ocamlcc_dynamic_apply(nargs, cfun_nargs, curr_fsz, next_fsz, dst, args)
 
-#define ocamlcc_static_apply(nargs, curr_fsz, next_fsz, dst, f, args...) { \
-  ocamlcc_apply_init_stack(curr_fsz, next_fsz);                           \
-  dst f(args);                                                            \
-  ocamlcc_apply_restore_stack(next_fsz);                                  \
+#define ocamlcc_static_apply(nargs, cfun_nargs, curr_fsz, next_fsz,     \
+                             dst, f, args...) {                         \
+  ocamlcc_apply_init_stack(curr_fsz, next_fsz);                         \
+  dst f(args);                                                          \
+  ocamlcc_apply_restore_stack(next_fsz);                                \
 }
 
 /***/
 
-#define ocamlcc_dynamic_standard_appterm(nargs, curr_fsz, args...) {    \
+#define ocamlcc_dynamic_standard_appterm(nargs, cfun_nargs, curr_fsz,   \
+                                         args...) {                     \
   caml_extern_sp = sp;                                                  \
   return ocamlcc_apply_##nargs(args);                                   \
 }
 
-#define ocamlcc_partial_standard_appterm(nargs, curr_fsz, args...)      \
-  ocamlcc_dynamic_standard_appterm(nargs, curr_fsz, args)
+#define ocamlcc_partial_standard_appterm(nargs, cfun_nargs, curr_fsz, \
+                                         args...)                     \
+  ocamlcc_dynamic_standard_appterm(nargs, cfun_nargs, curr_fsz, args)
 
-#define ocamlcc_static_standard_appterm(nargs, f, args...) {    \
-  caml_extern_sp = sp;                                          \
-  return f(args);                                               \
+#define ocamlcc_static_standard_appterm(nargs, cfun_nargs, f, args...) { \
+  caml_extern_sp = sp;                                                  \
+  return f(args);                                                       \
 }
 
 /***/
 
-#define ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, args...) { \
+#define ocamlcc_dynamic_special_appterm(nargs, cfun_nargs, curr_fsz,    \
+                                        args...) {                      \
   caml_extern_sp = sp;                                                  \
-  ocamlcc_tail_call_##tc_nargs((value) &ocamlcc_apply_##nargs, args);   \
+  ocamlcc_tail_call_##cfun_nargs((value) &ocamlcc_apply_##nargs, args); \
 }
 
-#define ocamlcc_partial_special_appterm(nargs, tc_nargs, curr_fsz, args...) \
-  ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, args)
+#define ocamlcc_partial_special_appterm(nargs, cfun_nargs, curr_fsz, \
+                                        args...)                     \
+  ocamlcc_dynamic_special_appterm(nargs, cfun_nargs, curr_fsz, args)
 
-#define ocamlcc_static_special_appterm(nargs, tc_nargs, f, args...) {   \
+#define ocamlcc_static_special_appterm(nargs, cfun_nargs, f, args...) { \
   caml_extern_sp = sp;                                                  \
-  ocamlcc_tail_call_##tc_nargs((value) &f, args);                       \
+  ocamlcc_tail_call_##cfun_nargs((value) &f, args);                     \
 }
 
 /***/
 
-#define ocamlcc_special_special_appterm(nargs, tc_nargs, curr_fsz, args...) \
-  ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, args)
+#define ocamlcc_special_special_appterm(nargs, cfun_nargs, curr_fsz, \
+                                        args...)                     \
+  ocamlcc_dynamic_special_appterm(nargs, cfun_nargs, curr_fsz, args)
 
 /***/
 

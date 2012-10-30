@@ -66,7 +66,7 @@ and verb_stop () =
 
 let arch_of_string s =
   match String.lowercase s with
-    | "all" -> ALL_ARCH
+    | "gen" -> GEN_ARCH
     | "none" -> NO_ARCH
     | "x86" | "i386" | "i486" | "i586" | "i686" -> X86
     | "x86-64" | "x86_64" -> X86_64
@@ -75,7 +75,7 @@ let arch_of_string s =
 
 let string_of_arch a =
   match a with
-    | ALL_ARCH -> "all"
+    | GEN_ARCH -> "gen"
     | NO_ARCH -> "none"
     | X86 -> "x86"
     | X86_64 -> "x86_64"
@@ -101,7 +101,7 @@ with Invalid_argument _ -> arch := NO_ARCH;;
 let default_arch = string_of_arch !arch;;
 
 let arch_option_doc =
-  let all_archs = [| NO_ARCH ; X86 ; X86_64 |] in
+  let all_archs = [| GEN_ARCH ; NO_ARCH ; X86 ; X86_64 |] in
   let buf = Buffer.create 16 in
   Printf.bprintf buf "<x> Define target architecture [ ";
   Array.iteri (fun i a ->
