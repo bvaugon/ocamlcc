@@ -13,6 +13,8 @@
 open Types;;
 open Tools;;
 
+(***)
+
 let test_useenv fun_desc =
   let body = fun_desc.body in
   let len = Array.length body in
@@ -57,6 +59,39 @@ let test_inlinable funs fun_desc =
       f 0
 ;;
 
+(***)
+
+let compute_tc_set funs =
+  let pass id fun_desc ((set, _) as acc) =
+    if ISet.mem id set then acc else
+      let body = fun_desc.body in
+      let len = Array.length body in
+      let cfun_arity =
+        if test_useenv fun_desc then fun_desc.arity + 1 else fun_desc.arity
+      in
+      let rec f i =
+        if i = len then false else
+          match body.(i).bc with
+            | StaticAppterm (nargs, _, ptr) ->
+              let callee_arity =
+                if test_useenv (IMap.find ptr.pointed.index funs) then nargs + 1
+                else nargs
+              in
+              if callee_arity > cfun_arity then true
+              else if ISet.mem ptr.pointed.index set then true
+              else f (i + 1)
+            | DynamicAppterm _ | SpecialAppterm _ -> true
+            | _ -> f (i + 1)
+      in
+      if f 0 then (ISet.add id set, true) else acc
+  in
+  let rec fixpoint acc =
+    let (new_acc, flag) = IMap.fold pass funs (acc, false) in
+    if flag then fixpoint new_acc else new_acc
+  in
+  fixpoint ISet.empty
+;;
+
 let compute_maximum_arity funs =
   let f acc instr =
     match instr.bc with
@@ -70,6 +105,8 @@ let compute_maximum_arity funs =
   in
   IMap.fold g funs 0
 ;;
+
+(***)
 
 let compute_nexts instr =
   match instr.bc with
@@ -95,7 +132,7 @@ let compute_nexts instr =
       (Instr.ptr_of_cond_branch cond_branch).pointed.index;
     ]
 
-    | Pushtrap ptr ->                           (* Warning *)
+    | Pushtrap ptr ->                         (* Warning *)
       [ instr.index + 1 ; ptr.pointed.index ] (* Warning *)
 
     | Switch (_, _, tbl) ->

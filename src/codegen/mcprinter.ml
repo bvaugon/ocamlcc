@@ -129,8 +129,13 @@ and print_macro oc macro =
       fprintf oc "PARTIAL_APPLY(%d, %d, %d, %d, %a, %a)" nargs cfun_nargs
         curr_fsz next_fsz print_lvalue_opt dst print_env_args (env, args, false)
     | STATIC_APPLY (nargs, cfun_nargs, curr_fsz, next_fsz, dst, f, env, args) ->
-      fprintf oc "STATIC_APPLY(%d, %d, %d, %d, %a, %a, %a)" nargs cfun_nargs
-        curr_fsz next_fsz print_lvalue_opt dst print_mlfun f
+      fprintf oc "STATIC_APPLY(%d, %d, %d, %d, %a, %a, %a)" nargs
+        cfun_nargs curr_fsz next_fsz print_lvalue_opt dst print_mlfun f
+        print_env_args (env, args, true)
+    | STATIC_NOTC_APPLY (nargs, cfun_nargs, curr_fsz, next_fsz, dst, f,
+                         env, args) ->
+      fprintf oc "STATIC_NOTC_APPLY(%d, %d, %d, %d, %a, %a, %a)" nargs
+        cfun_nargs curr_fsz next_fsz print_lvalue_opt dst print_mlfun f
         print_env_args (env, args, true)
     | DYNAMIC_STANDARD_APPTERM (nargs, cfun_nargs, curr_fsz, env, args) ->
       fprintf oc "DYNAMIC_STANDARD_APPTERM(%d, %d, %d, %a)" nargs cfun_nargs

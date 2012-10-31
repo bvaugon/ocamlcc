@@ -102,7 +102,7 @@ let export_fun_foot oc =
   fprintf oc "}\n\n";
 ;;
 
-let export_fun oc prims dbug funs fun_id
+let export_fun oc prims dbug funs tc_set fun_id
     (fun_desc, states, idvd_map, ptr_set, read_set, read_args) =
   let body = fun_desc.body in
   let instr_nb = Array.length body in
@@ -368,8 +368,14 @@ let export_fun oc prims dbug funs fun_id
             let cfun_nargs = if useenv then nargs + 1 else nargs in
             let env = if useenv then clsr else EVal_unit in
             let dst = get_dst () in
-            putm (STATIC_APPLY (nargs, cfun_nargs, curr_frame_sz, next_frame_sz,
-                                dst, ptr.pointed.index, env, args));
+            if ISet.mem ptr.pointed.index tc_set then
+              putm (STATIC_APPLY (nargs, cfun_nargs, curr_frame_sz,
+                                  next_frame_sz, dst, ptr.pointed.index,
+                                  env, args))
+            else
+              putm (STATIC_NOTC_APPLY (nargs, cfun_nargs, curr_frame_sz,
+                                       next_frame_sz, dst, ptr.pointed.index,
+                                       env, args));
 
           | DynamicAppterm (nargs, _) ->
             if !Options.trace then puti (ITrace (MLAppterm fun_id));
@@ -380,7 +386,7 @@ let export_fun oc prims dbug funs fun_id
                                              clsr, args))
             else
               putm (DYNAMIC_STANDARD_APPTERM (nargs, nargs + 1, curr_frame_sz,
-                                              clsr, args))
+                                              clsr, args));
 
           | PartialAppterm (nargs, _) ->
             if !Options.trace then puti (ITrace (MLAppterm fun_id));
@@ -390,13 +396,7 @@ let export_fun oc prims dbug funs fun_id
                                             clsr, args))
             else
               putm (PARTIAL_STANDARD_APPTERM (nargs, nargs + 1, curr_frame_sz,
-                                              clsr, args))
-
-          | SpecialAppterm _ ->
-            if !Options.trace then puti (ITrace (MLAppterm fun_id));
-            let curr_frame_sz = compute_frame_size ind in
-            putm (SPECIAL_SPECIAL_APPTERM (nargs, nargs+1, curr_frame_sz,
-                                           clsr, args))
+                                              clsr, args));
 
           | StaticAppterm (nargs, _, ptr) ->
             if !Options.trace then puti (ITrace (MLAppterm fun_id));
@@ -412,6 +412,12 @@ let export_fun oc prims dbug funs fun_id
             else
               putm (STATIC_STANDARD_APPTERM(nargs, callee_nargs,
                                             ptr.pointed.index, env, args));
+
+          | SpecialAppterm _ ->
+            if !Options.trace then puti (ITrace (MLAppterm fun_id));
+            let curr_frame_sz = compute_frame_size ind in
+            putm (SPECIAL_SPECIAL_APPTERM (nargs, nargs+1, curr_frame_sz,
+                                           clsr, args));
 
           | _ -> assert false
         end;
@@ -772,7 +778,7 @@ let export_fun oc prims dbug funs fun_id
   assert (!catch_list = []);
 ;;
 
-let export oc prims dbug funs dzeta_code =
+let export oc prims dbug funs dzeta_code tc_set =
   let main = IMap.find 0 dzeta_code in
   let rest = IMap.remove 0 dzeta_code in
   let f id (fd, _, _, _, _, _) =
@@ -782,11 +788,11 @@ let export oc prims dbug funs dzeta_code =
   (*Printer.print_dzeta_code stdout dzeta_code;*)
   IMap.iter f rest;
   fprintf oc "\n";
-  IMap.iter (export_fun oc prims dbug funs) rest;
-  export_fun oc prims dbug funs 0 main;
+  IMap.iter (export_fun oc prims dbug funs tc_set) rest;
+  export_fun oc prims dbug funs tc_set 0 main;
 ;;
 
-let gen_code output_C_file prims data dbug funs dzeta_code max_arity =
+let gen_code output_C_file prims data dbug funs dzeta_code tc_set max_arity =
   Options.verb_start "+ Generating %S..." output_C_file;
   let oc = open_out output_C_file in
   if !Options.no_main then Printf.fprintf oc "#define OCAMLCC_NO_MAIN\n";
@@ -825,7 +831,7 @@ let gen_code output_C_file prims data dbug funs dzeta_code max_arity =
   Data.export oc data;
   Printf.fprintf oc "\n";
   Apply.gen_applies oc max_arity;
-  export oc prims dbug funs dzeta_code;
+  export oc prims dbug funs dzeta_code tc_set;
   close_out oc;
   Options.verb_stop ();
 ;;

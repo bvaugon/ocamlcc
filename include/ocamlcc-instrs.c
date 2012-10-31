@@ -204,6 +204,12 @@
   ocamlcc_static_apply(nargs, curr_fsz, next_fsz, dst, f, args)
   /* See ocamlcc-apply.c */
 
+#define STATIC_NOTC_APPLY(nargs, curr_fsz, next_fsz, dst, f, args...)   \
+  ocamlcc_static_notc_apply(nargs, curr_fsz, next_fsz, dst, f, args)
+  /* See ocamlcc-apply.c */
+
+/***/
+
 #define DYNAMIC_STANDARD_APPTERM(nargs, curr_fsz, args...)      \
   ocamlcc_dynamic_standard_appterm(nargs, curr_fsz, args)
   /* See ocamlcc-apply.c */
@@ -215,6 +221,8 @@
 #define STATIC_STANDARD_APPTERM(f, args...)     \
   ocamlcc_static_standard_appterm(f, args)
   /* See ocamlcc-apply.c */
+
+/***/
 
 #define DYNAMIC_SPECIAL_APPTERM(nargs, tc_nargs, curr_fsz, args...)     \
   ocamlcc_dynamic_special_appterm(nargs, tc_nargs, curr_fsz, args)
@@ -228,9 +236,13 @@
   ocamlcc_special_special_appterm(nargs, tc_nargs, curr_fsz, args)
   /* See ocamlcc-apply.c */
 
+/***/
+
 #define STATIC_SPECIAL_APPTERM(nargs, tc_nargs, f, args...)     \
   ocamlcc_static_special_appterm(nargs, tc_nargs, f, args)
   /* See ocamlcc-apply.c */
+
+/***/
 
 #define RETURN(src)                             \
   caml_extern_sp = sp;                          \

@@ -51,6 +51,10 @@
   ocamlcc_apply_restore_stack(next_fsz);                                \
 }
 
+#define ocamlcc_static_notc_apply(nargs, cfun_nargs, curr_fsz, next_fsz, \
+                                  dst, f, args...)                      \
+  ocamlcc_static_apply(nargs, cfun_nargs, curr_fsz, next_fsz, dst, f, args)
+
 /***/
 
 #define ocamlcc_dynamic_standard_appterm(nargs, cfun_nargs, curr_fsz,   \

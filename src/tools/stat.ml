@@ -27,7 +27,7 @@ let print_flag oc title =
   output_char oc '\n';
 ;;
 
-let functions oc funs =
+let functions oc funs tc_set =
   let main = (IMap.find 0 funs).body in
   let others = IMap.remove 0 funs in
   let main_size = Array.length main in
@@ -46,6 +46,7 @@ let functions oc funs =
   let (fun_nb, total_size, min_size, max_size, arities, inln_nb) =
     IMap.fold foldf others (0, 0, max_int, 0, IMap.empty, 0)
   in
+  let tc_nb = ISet.cardinal tc_set in
   let average_size = if fun_nb <> 0 then total_size / fun_nb else 0 in
   let print_arity arity n =
     if arity = 1 then
@@ -70,18 +71,23 @@ Size of main function  -> %6d instructions\n"
   IMap.iter print_arity arities;
   Printf.fprintf oc "\n\
 Inlinable              -> %6d  (%.2f%%)\n\
-\n" inln_nb (percentage inln_nb fun_nb);
+With special tail call -> %6d  (%.2f%%)\n\
+\n" inln_nb (percentage inln_nb fun_nb) tc_nb (percentage tc_nb fun_nb);
 ;;
 
-let calls oc funs =
+let calls oc funs tc_set =
   let apps = ref 0 in
   let terms = ref 0 in
   let statics = ref 0 in
   let partials = ref 0 in
+  let notc = ref 0 in
+  let stapp = ref 0 in
   let f instr =
     match instr.bc with
-      | DynamicApply _   -> incr apps;
-      | StaticApply _    -> incr apps; incr statics;
+      | StaticApply (_, ptr) ->
+        if ISet.mem ptr.pointed.index tc_set then incr notc;
+        incr apps; incr statics; incr stapp;
+      | DynamicApply _   -> incr apps; incr stapp;
       | PartialApply _   -> incr apps; incr partials;
       | DynamicAppterm _ -> incr apps; incr terms;
       | StaticAppterm _  -> incr apps; incr terms; incr statics;
@@ -95,11 +101,17 @@ let calls oc funs =
 \n\
 Terminal calls         -> %6d  (%.2f%%)\n\
 Static calls           -> %6d  (%.2f%%)\n\
-Partial calls          -> %6d  (%.2f%%)\n\n"
+Partial calls          -> %6d  (%.2f%%)\n\
+\n\
+Static applies         -> %6d  (%.2f%%)\n\
+Special static applies -> %6d  (%.2f%%)\n\
+\n"
     !apps
     !terms (percentage !terms !apps)
     !statics (percentage !statics !apps)
     !partials (percentage !partials !apps)
+    !stapp (percentage !stapp !apps)
+    !notc (percentage !notc !stapp)
 ;;
 
 let xconst_fun_tys oc fun_tys =
@@ -157,11 +169,11 @@ Read cells             -> %6d  (%.2f%% of idents, %.2f%% of cells)\n\n"
     !read_cnt (percentage !read_cnt !id_cnt) (percentage !read_cnt !cell_cnt)
 ;;
 
-let analyse oc funs dzeta_code fun_tys =
+let analyse oc funs dzeta_code fun_tys tc_set =
   print_flag oc " Functions ";
-  functions oc funs;
+  functions oc funs tc_set;
   print_flag oc " Function calls ";
-  calls oc funs;
+  calls oc funs tc_set;
   print_flag oc " Function types ";
   xconst_fun_tys oc fun_tys;
   print_flag oc " Values ";

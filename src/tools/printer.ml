@@ -312,7 +312,7 @@ let print_dzeta_code oc dzeta_code =
     IMap.iter f idvd_map;
     Printf.fprintf oc "\n";
   in
-  let f _ (fun_desc, states, idvd_map, ptr_set, read_set) =
+  let f _ (fun_desc, states, idvd_map, ptr_set, read_set, _) =
     print_body_states oc fun_desc.body states idvd_map;
     print_val_desc_map oc idvd_map ptr_set read_set;
     Printf.fprintf oc "\n\n";

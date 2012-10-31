@@ -60,6 +60,8 @@ and macro =
   | PARTIAL_APPLY of int * int * int * int * lvalue option * expr * expr list
   | STATIC_APPLY of int * int * int * int * lvalue option * mlfun * expr *
       expr list
+  | STATIC_NOTC_APPLY of int * int * int * int * lvalue option * mlfun * expr *
+      expr list
   | DYNAMIC_STANDARD_APPTERM of int * int * int * expr * expr list
   | DYNAMIC_SPECIAL_APPTERM of int * int * int * expr * expr list
   | PARTIAL_STANDARD_APPTERM of int * int * int * expr * expr list
