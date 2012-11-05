@@ -267,20 +267,23 @@ and print_args oc args =
 and print_env_args oc (env, args, is_static) =
   match !Options.arch with
     | NO_ARCH ->
-      fprintf oc "%a, %a" print_expr env print_args args
+      fprintf oc "%a, %a" print_env env print_args args
     | GEN_ARCH ->
       if is_static then
-        if env <> EVal_unit then
-          fprintf oc "%a, %a" print_args args print_expr env
-        else
-          print_args oc args
+        match env with
+          | Some expr -> fprintf oc "%a, %a" print_args args print_expr expr
+          | None -> print_args oc args
       else
-        fprintf oc "%a, %a" print_expr env print_args args
+        fprintf oc "%a, %a" print_env env print_args args
     | X86 | X86_64 ->
-      if env <> EVal_unit then
-        fprintf oc "%a, %a" print_args args print_expr env
-      else
-        print_args oc args
+      match env with
+        | Some expr -> fprintf oc "%a, %a" print_args args print_expr expr
+        | None -> print_args oc args
+
+and print_env oc env =
+  match env with
+    | Some expr -> print_expr oc expr
+    | None -> fprintf oc "Val_unit"
 
 and print_lvalue_opt oc lvalue_opt =
   match lvalue_opt with
@@ -289,7 +292,6 @@ and print_lvalue_opt oc lvalue_opt =
 
 and print_expr oc expr =
   match expr with
-    | EVal_unit -> fprintf oc "Val_unit"
     | EInt n -> fprintf oc "%d" n
     | EVal_int n -> fprintf oc "Val_int(%d)" n
     | ETag_val e -> fprintf oc "Tag_val(%a)" print_expr e
@@ -300,7 +302,6 @@ and print_expr oc expr =
     | EAtom t -> fprintf oc "Atom(%d)" t 
     | EOffset (e, n) -> fprintf oc "Offset(%a, %d)" print_expr e n
     | EField (e, n) -> fprintf oc "Field(%a, %d)" print_expr e n
-    | EParam n -> fprintf oc "p%d" n
     | ECast (t, e) -> fprintf oc "(%a) %a" print_ctype t print_expr e
     | EFunPtr id -> fprintf oc "&f%d" id
     | ELvalue lvalue -> print_lvalue oc lvalue
@@ -309,9 +310,13 @@ and print_expr oc expr =
 
 and print_lvalue oc lvalue =
   match lvalue with
-    | LTmp -> fprintf oc "tmp"
-    | LVar n -> fprintf oc "v%d" n
-    | LSpAcc n -> fprintf oc "sp[-%d]" n
+    | LSp           -> fprintf oc "sp"
+    | LEnv          -> fprintf oc "env"
+    | LTmp          -> fprintf oc "tmp"
+    | LVar n        -> fprintf oc "v%d" n
+    | LParam n      -> fprintf oc "p%d" n
+    | LGlobal s     -> fprintf oc "%s" s
+    | LArray (l, i) -> fprintf oc "%a[%d]" print_lvalue l i
 
 and print_ctype oc ctype =
   match ctype with
@@ -372,7 +377,12 @@ and print_var_decl oc {
 } =
   fprintf oc "%a %s;\n" print_ctype ty name
 
-and print_fun_signature oc ret_type name params =
+and print_fun_signature oc {
+  fs_ret_type = ret_type;
+  fs_name     = name;
+  fs_params   = params;
+  fs_static   = static;
+} =
   let print_param oc { vd_type = ty ; vd_name = name } =
     fprintf oc "%a %s" print_ctype ty name;
   in
@@ -382,32 +392,63 @@ and print_fun_signature oc ret_type name params =
       | [ last ] -> print_param oc last
       | p :: rest -> fprintf oc "%a, %a" print_param p print_params rest
   in
+  if static then output_string oc "static ";
   fprintf oc "%a %s(" print_ctype ret_type name;
   print_params oc params;
   fprintf oc ")";
 
+and print_location oc location =
+  match location with
+    | Some loc -> Printf.fprintf oc "/* %a */\n" Printer.print_location loc
+    | None -> ()
+
 and print_fun_decl oc {
-  fdc_ret_type = ret_type;
-  fdc_name = name;
-  fdc_params = params;
-  fdc_noinline = noinline;
+  fdc_location  = location;
+  fdc_signature = signature;
+  fdc_noinline  = noinline;
 } =
-  print_fun_signature oc ret_type name params;
-  if noinline then fprintf oc "%s" Tools.noinline;
+  print_location oc location;
+  print_fun_signature oc signature;
+  if noinline then fprintf oc " %s" Tools.noinline;
   fprintf oc ";\n";
 
 and print_fun_def oc {
-  fdf_ret_type = ret_type;
-  fdf_name = name;
-  fdf_params = params;
-  fdf_locals = locals;
-  fdf_body = body;
+  fdf_location  = location;
+  fdf_signature = signature;
+  fdf_locals    = locals;
+  fdf_body      = body;
+  fdf_special   = special;
 } =
+  let cnt = ref 0 in
   let print_local oc { vd_type = ty ; vd_name = name } =
-    fprintf oc "  %a %s;\n" print_ctype ty name;
+    if !cnt = 0 then fprintf oc "  value "
+    else if !cnt mod 16 = 0 then fprintf oc ",\n        "
+    else fprintf oc ", ";
+    begin match ty with
+      | TVoid -> assert false
+      | TValue -> fprintf oc "%s" name
+      | TPValue -> fprintf oc "*%s" name
+    end;
+    incr cnt;
   in
-  print_fun_signature oc ret_type name params;
+  print_location oc location;
+  print_fun_signature oc signature;
   fprintf oc " {\n";
+  begin match special with
+    | Some fun_id ->
+      fprintf oc "  OCAMLCC_SPECIAL_TAIL_CALL_HEADER(%d);\n" fun_id;
+    | None -> ()
+  end;
   List.iter (print_local oc) locals;
+  if !cnt <> 0 then fprintf oc ";\n";
   List.iter (print_instr oc) body;
+  fprintf oc "}\n\n";
+
+and print_macroc oc macroc =
+  Data.export oc macroc.mc_data;
+  Printf.fprintf oc "\n";
+  Apply.gen_applies oc macroc.mc_max_arity;
+  List.iter (print_fun_decl oc) macroc.mc_fun_decls;
+  Printf.fprintf oc "\n";
+  List.iter (print_fun_def oc) macroc.mc_fun_defs;
 ;;

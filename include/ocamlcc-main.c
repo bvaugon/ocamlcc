@@ -16,7 +16,7 @@
 #include "ocamlcc-byterun/callback.h"
 #include "ocamlcc-byterun/signals.h"
 
-void ocamlcc_bytecode_main(void);
+static void ocamlcc_bytecode_main(void);
 
 value ocamlcc_main() {
   CAMLparam0();

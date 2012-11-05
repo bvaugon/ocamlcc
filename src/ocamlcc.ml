@@ -165,8 +165,8 @@ let b2c bfile cfile stop =
   let (funs, dzeta_code, fun_tys, tc_set) =
     Cleanfuns.clean_functions funs dzeta_code fun_tys tc_set
   in
-  let max_arity = Body.compute_maximum_arity funs in
-  Codegen.gen_code cfile prims data dbug funs dzeta_code tc_set max_arity;
+  let macroc = Mcgen.gen_macroc prims data dbug funs dzeta_code tc_set in
+  Codegen.gen_code cfile macroc;
   if !Options.stat then Stat.analyse stdout funs dzeta_code fun_tys tc_set;
   if stop then exit 0;
 ;;
