@@ -161,7 +161,7 @@ let b2c bfile cfile stop =
   Remapstk.remap_stack funs;
   Cleanclsrs.clean_closures funs;
   let (dzeta_code, fun_tys) = Xconst.extract_constants prims funs in
-  let tc_set = Body.compute_tc_set funs in
+  let tc_set = Body.compute_tc_set funs dzeta_code in
   let (funs, dzeta_code, fun_tys, tc_set) =
     Cleanfuns.clean_functions funs dzeta_code fun_tys tc_set
   in

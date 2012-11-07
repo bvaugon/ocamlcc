@@ -15,25 +15,19 @@ open Tools;;
 
 (***)
 
-let test_useenv fun_desc =
-  let body = fun_desc.body in
-  let len = Array.length body in
-  let rec f i =
-    if i = len then false else
-      match body.(i).bc with
-        | Envacc _ | Offsetclosure _ -> true
-        | _ -> f (i + 1)
-  in
-  fun_desc.fun_id <> 0 && f 0
+let test_useenv dzeta_code fun_desc =
+  let (_, _, _, _, _, _, use_env) = IMap.find fun_desc.fun_id dzeta_code in
+  use_env
 ;;
 
-let test_inlinable funs fun_desc =
+let test_inlinable funs dzeta_code fun_desc =
   match !Options.arch with
     | GEN_ARCH | NO_ARCH -> true
     | X86 | X86_64 ->
       let body = fun_desc.body in
       let cfun_arity =
-        if test_useenv fun_desc then fun_desc.arity + 1 else fun_desc.arity
+        if test_useenv dzeta_code fun_desc then fun_desc.arity + 1
+        else fun_desc.arity
       in
       let len = Array.length body in
       let rec f i =
@@ -47,7 +41,8 @@ let test_inlinable funs fun_desc =
             | SpecialAppterm _ -> false
             | StaticAppterm (nargs, _, ptr) ->
               let callee_nargs =
-                if test_useenv (IMap.find ptr.pointed.index funs) then nargs + 1
+                if test_useenv dzeta_code (IMap.find ptr.pointed.index funs)
+                then nargs + 1
                 else nargs
               in
               if
@@ -61,20 +56,22 @@ let test_inlinable funs fun_desc =
 
 (***)
 
-let compute_tc_set funs =
+let compute_tc_set funs dzeta_code =
   let pass id fun_desc ((set, _) as acc) =
     if ISet.mem id set then acc else
       let body = fun_desc.body in
       let len = Array.length body in
       let cfun_arity =
-        if test_useenv fun_desc then fun_desc.arity + 1 else fun_desc.arity
+        if test_useenv dzeta_code fun_desc then fun_desc.arity + 1
+        else fun_desc.arity
       in
       let rec f i =
         if i = len then false else
           match body.(i).bc with
             | StaticAppterm (nargs, _, ptr) ->
               let callee_arity =
-                if test_useenv (IMap.find ptr.pointed.index funs) then nargs + 1
+                if test_useenv dzeta_code (IMap.find ptr.pointed.index funs)
+                then nargs + 1
                 else nargs
               in
               if callee_arity > cfun_arity then true

@@ -27,7 +27,7 @@ let print_flag oc title =
   output_char oc '\n';
 ;;
 
-let functions oc funs tc_set =
+let functions oc funs dzeta_code tc_set =
   let main = (IMap.find 0 funs).body in
   let others = IMap.remove 0 funs in
   let main_size = Array.length main in
@@ -39,7 +39,8 @@ let functions oc funs tc_set =
       with Not_found -> IMap.add arity 1 arities
     in
     let new_inln_nb =
-      if Body.test_inlinable funs fun_desc then inln_nb + 1 else inln_nb
+      if Body.test_inlinable funs dzeta_code fun_desc then inln_nb + 1
+      else inln_nb
     in
     (nb+1, tot+sz, min sz mini, max sz maxi, new_arities, new_inln_nb)
   in
@@ -145,7 +146,7 @@ let xconst_ids oc dzeta_code =
   let cell_cnt = ref 0 in
   let ptr_cnt = ref 0 in
   let read_cnt = ref 0 in
-  let count _ (_, _, vd_map, ptr_set, read_set, _) =
+  let count _ (_, _, vd_map, ptr_set, read_set, _, _) =
     let f id vd =
       incr id_cnt;
       if vd = VCell then (
@@ -171,7 +172,7 @@ Read cells             -> %6d  (%.2f%% of idents, %.2f%% of cells)\n\n"
 
 let analyse oc funs dzeta_code fun_tys tc_set =
   print_flag oc " Functions ";
-  functions oc funs tc_set;
+  functions oc funs dzeta_code tc_set;
   print_flag oc " Function calls ";
   calls oc funs tc_set;
   print_flag oc " Function types ";

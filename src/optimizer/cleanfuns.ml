@@ -47,7 +47,7 @@ let clean_functions funs dzeta_code fun_tys tc_set =
       let new_performed = ISet.add id performed in
       let new_tosearch = ISet.remove id tosearch in
       let body = (IMap.find id funs).body in
-      let (_, states, _, _, read_set, _) = IMap.find id dzeta_code in
+      let (_, states, _, _, read_set, _, _) = IMap.find id dzeta_code in
       let new_tosearch2 =
         search_funs new_performed new_tosearch states read_set body
       in
