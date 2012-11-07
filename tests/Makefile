@@ -24,12 +24,12 @@ MLS = $(wildcard *.ml)
 BYTES = $(MLS:.ml=.byte)
 NATIVES = $(MLS:.ml=.native)
 CS = $(BYTES:.byte=.c)
-GENCS = $(BYTES:.byte=-gen.c)
+NONECS = $(BYTES:.byte=-none.c)
 NXCCS = $(BYTES:.byte=-nxc.c)
 ARCHCS = $(BYTES:.byte=-$(ARCH).c)
 NXCARCHCS = $(BYTES:.byte=-nxc-$(ARCH).c)
 S = $(CS:.c=)
-GENS=$(GENCS:.c=)
+NONES=$(NONECS:.c=)
 NXCS=$(NXCCS:.c=)
 ARCHS=$(ARCHCS:.c=)
 NXCARCHS=$(NXCARCHCS:.c=)
@@ -61,16 +61,17 @@ endif
 ###
 
 ifeq ($(MANAGED_ARCH), true)
-TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(GENCS) $(GENS) $(NXCCS) $(NXCS) \
+TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS) \
 	 $(ARCHCS) $(ARCHS) $(NXCARCHCS) $(NXCARCHS)
 else
-TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(GENCS) $(GENS) $(NXCCS) $(NXCS)
+TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS)
 endif
 
 ###
 
 tests: $(TARGS)
-gens: $(GENCS) $(GENS)
+gens: $(CS) $(S)
+nones: $(NONECS) $(NONES)
 nxcs: $(NXCCS) $(NXCS)
 archs: $(ARCHCS) $(ARCHS)
 
@@ -89,13 +90,13 @@ check-project:
 	ocamlopt $< -o $@
 
 %.c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch NONE $<
+	$(OCAMLCC) -c -verbose -stat -arch GEN $<
 
 %-nxc.c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch NONE -no-xconst $< -o $@
+	$(OCAMLCC) -c -verbose -stat -arch GEN -no-xconst $< -o $@
 
-%-gen.c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch GEN $< -o $@
+%-none.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch NONE $< -o $@
 
 %-$(ARCH).c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
@@ -109,13 +110,13 @@ check-project:
 ###
 
 ocamlc.c: $(OCAMLC) check-project
-	$(OCAMLCC) -c -verbose -stat -arch NONE $< -o $@
+	$(OCAMLCC) -c -verbose -stat -arch GEN $< -o $@
 
 ocamlc-nxc.c: $(OCAMLC) check-project
-	$(OCAMLCC) -c -verbose -stat -arch NONE -no-xconst $< -o $@
+	$(OCAMLCC) -c -verbose -stat -arch GEN -no-xconst $< -o $@
 
-ocamlc-gen.c: $(OCAMLC) check-project
-	$(OCAMLCC) -c -verbose -stat -arch GEN $< -o $@
+ocamlc-none.c: $(OCAMLC) check-project
+	$(OCAMLCC) -c -verbose -stat -arch NONE $< -o $@
 
 ocamlc-$(ARCH).c: $(OCAMLC) check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
@@ -133,10 +134,13 @@ flocon.native: flocon.ml
 	ocamlopt -verbose unix.cmxa graphics.cmxa $< -o $@
 
 flocon.c: flocon.byte check-project
-	$(OCAMLCC) -signal R -c -verbose -stat -arch NONE $<
+	$(OCAMLCC) -signal R -c -verbose -stat -arch GEN $<
 
 flocon-nxc.c: flocon.byte check-project
-	$(OCAMLCC) -signal R -c -verbose -stat -arch NONE -no-xconst $< -o $@
+	$(OCAMLCC) -signal R -c -verbose -stat -arch GEN -no-xconst $< -o $@
+
+flocon-none.c: flocon.byte check-project
+	$(OCAMLCC) -signal R -c -verbose -stat -arch NONE $< -o $@
 
 flocon-$(ARCH).c: flocon.byte check-project
 	$(OCAMLCC) -signal R -c -verbose -stat -arch $(ARCH) $< -o $@
@@ -153,7 +157,7 @@ floco%: floco%.c check-project
 clean:
 	@rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) ocamlc.c ocamlc ocamlc-nxc.c \
 	  ocamlc-nxc ocamlc-$(ARCH).c ocamlc-$(ARCH) ocamlc-nxc-$(ARCH).c \
-	  ocamlc-nxc-$(ARCH) ocamlc-gen.c ocamlc-gen a.out
+	  ocamlc-nxc-$(ARCH) ocamlc-none.c ocamlc-none a.out
 
 ###
 

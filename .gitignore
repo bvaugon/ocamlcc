@@ -12,7 +12,7 @@ tests/*.cmx
 tests/*.native
 tests/*.o
 tests/*.c
-tests/*-gen
+tests/*-none
 tests/*-nxc
 tests/*-i386
 tests/*-i486
