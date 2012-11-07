@@ -175,7 +175,8 @@ static value ocamlcc_fix_tailcalls() {
                               dst, env, args...) {                      \
   ocamlcc_apply_init_stack(curr_fsz, next_fsz);                         \
   if (Field(env, 1) == Val_long(nargs)) {                               \
-    if ((dst ((ocamlcc_fun) Field(env, 0))(args, env)) == (value) NULL) \
+    if ((dst ((ocamlcc_fun_##nargs) Field(env, 0))(args, env)) ==       \
+        (value) NULL)                                                   \
       dst ocamlcc_fix_tailcalls();                                      \
   } else {                                                              \
     ocamlcc_store_args_##nargs(args);                                   \
@@ -213,7 +214,7 @@ static value ocamlcc_fix_tailcalls() {
                                          env, args...) {                \
   caml_extern_sp = sp;                                                  \
   if (Field(env, 1) == Val_long(nargs)) {                               \
-    return ((ocamlcc_fun) Field(env, 0))(args, env);                    \
+    return ((ocamlcc_fun_##nargs) Field(env, 0))(args, env);            \
   } else {                                                              \
     ocamlcc_store_args_##nargs(args);                                   \
     return ocamlcc_generic_apply(nargs, env);                           \
@@ -253,7 +254,7 @@ static value ocamlcc_fix_tailcalls() {
   caml_extern_sp = sp;                                                  \
   ocamlcc_global_nargs = nargs;                                         \
   ocamlcc_global_closure = env;                                         \
-  ocamlcc_global_fun = &f;                                              \
+  ocamlcc_global_fun = (ocamlcc_fun) &f;                                \
   ocamlcc_store_args_##nargs(args);                                     \
   return (value) NULL;                                                  \
 }

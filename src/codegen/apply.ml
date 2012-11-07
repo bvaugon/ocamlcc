@@ -14,6 +14,15 @@ open Printf;;
 open Types;;
 
 module GEN_ARCH = struct
+  let gen_fun_type oc n =
+    fprintf oc "typedef value (*ocamlcc_fun_%d)(value arg1," n;
+    for i = 2 to n do
+      fprintf oc " value arg%d," i;
+      if i mod 4 = 0 then fprintf oc "\n                              ";
+    done;
+    fprintf oc " value env);\n";
+  ;;
+
   let gen_exec_closure oc max_arity =
     fprintf oc "\
 static value ocamlcc_exec_closure(long nargs, value closure) {\n\
@@ -27,8 +36,8 @@ static value ocamlcc_exec_closure(long nargs, value closure) {\n\
 \    default:\n\
 ";
       fprintf oc "\
-\      return ((ocamlcc_fun) Field(closure, 0))(\n\
-";
+\      return ((ocamlcc_fun_%d) Field(closure, 0))(\n\
+" i;
       for j = 1 to i do
         fprintf oc "\
 \        ocamlcc_global_params[%d],\n\
@@ -64,6 +73,10 @@ static value ocamlcc_exec_closure(long nargs, value closure) {\n\
   ;;
 
   let gen_applies oc max_arity =
+    for i = 1 to max_arity do
+      gen_fun_type oc i;
+    done;
+    fprintf oc "\n";
     gen_exec_closure oc max_arity;
     for i = 0 to max_arity do
       gen_store_args oc i;
