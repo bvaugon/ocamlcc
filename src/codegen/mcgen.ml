@@ -152,7 +152,9 @@ let compute_fun prims dbug funs tc_set fun_id
     let rec f i =
       if i = instr_nb then false else
         match body.(i).bc with
-          | Closure _ | Closurerec _ | Makeblock _ | Makefloatblock _ -> true
+          | Closure _ | Closurerec _ | Makeblock _ | Makefloatblock _
+          | Ccall _ | Binapp Divint | Binapp Modint | Unapp Vectlength
+          | Getfloatfield _ -> true
           | _ -> f (i + 1)
     in
     f 0

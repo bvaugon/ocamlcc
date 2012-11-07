@@ -700,15 +700,6 @@ let greater pair =
 ;;
 
 
-
-kb_complete greater [] xGroup_rules
-;;
-
-kb_complete greater [] xGroup_rules
-;;
-
-kb_complete greater [] xGroup_rules
-;;
-
-kb_complete greater [] xGroup_rules
-;;
+for i = 1 to 30 do
+  ignore (kb_complete greater [] xGroup_rules)
+done

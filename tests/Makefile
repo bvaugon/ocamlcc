@@ -70,6 +70,11 @@ endif
 ###
 
 tests: $(TARGS)
+gens: $(GENCS) $(GENS)
+nxcs: $(NXCCS) $(NXCS)
+archs: $(ARCHCS) $(ARCHS)
+
+###
 
 check-project:
 	@make --no-print-directory -C .. all
@@ -77,7 +82,7 @@ check-project:
 ###
 
 %.byte: %.ml
-	ocamlc -g $< -o $@
+	$(OCAMLC) -g $< -o $@
 	which ocamlclean && ocamlclean $@ -o $@ || /bin/true
 
 %.native: %.ml
@@ -121,7 +126,7 @@ ocamlc-nxc-$(ARCH).c: $(OCAMLC) check-project
 ###
 
 flocon.byte: flocon.ml
-	ocamlc -g unix.cma graphics.cma $< -o $@
+	$(OCAMLC) -g unix.cma graphics.cma $< -o $@
 	which ocamlclean && ocamlclean $@ -o $@ || /bin/true
 
 flocon.native: flocon.ml

@@ -35,10 +35,10 @@
   (dst) = Val_long((src) & 1);
 
 #define VECTLENGTH(src, dst) {                  \
-  mlsize_t size = Wosize_val(src);              \
+  tmp = Wosize_val(src);                        \
   if (Tag_val(src) == Double_array_tag)         \
-    size = size / Double_wosize;                \
-  (dst) = Val_long(size);                       \
+    tmp = ((mlsize_t) tmp) / Double_wosize;     \
+  (dst) = Val_long((mlsize_t) tmp);             \
 }
 
 
@@ -56,41 +56,41 @@
 #ifdef NONSTANDARD_DIV_MOD
 
 #define DIVINT(op1, op2, dst, frame_sz) {                       \
-  intnat divisor = Long_val(op2);                               \
-  if (divisor == 0) {                                           \
+  tmp = Long_val(op2);                                          \
+  if (tmp == 0) {                                               \
     caml_extern_sp = sp - frame_sz;                             \
     caml_raise_zero_divide();                                   \
   }                                                             \
-  (dst) = Val_long(caml_safe_div(Long_val(op1), divisor));      \
+  (dst) = Val_long(caml_safe_div(Long_val(op1), tmp));          \
 }
 
 #define MODINT(op1, op2, dst, frame_sz) {                       \
-  intnat divisor = Long_val(op2);                               \
-  if (divisor == 0) {                                           \
+  tmp = Long_val(op2);                                          \
+  if (tmp == 0) {                                               \
     caml_extern_sp = sp - frame_sz;                             \
     caml_raise_zero_divide();                                   \
   }                                                             \
-  (dst) = Val_long(caml_safe_mod(Long_val(op1), divisor));      \
+  (dst) = Val_long(caml_safe_mod(Long_val(op1), tmp));          \
 }
 
 #else
 
 #define DIVINT(op1, op2, dst, frame_sz) {                       \
-  intnat divisor = Long_val(op2);                               \
-  if (divisor == 0) {                                           \
+  tmp = Long_val(op2);                                          \
+  if (tmp == 0) {                                               \
     caml_extern_sp = sp - frame_sz;                             \
     caml_raise_zero_divide();                                   \
   }                                                             \
-  (dst) = Val_long(Long_val(op1) / divisor);                    \
+  (dst) = Val_long(Long_val(op1) / tmp);                        \
 }
 
 #define MODINT(op1, op2, dst, frame_sz) {                       \
-  intnat divisor = Long_val(op2);                               \
-  if (divisor == 0) {                                           \
+  tmp = Long_val(op2);                                          \
+  if (tmp == 0) {                                               \
     caml_extern_sp = sp - frame_sz;                             \
     caml_raise_zero_divide();                                   \
   }                                                             \
-  (dst) = Val_long(Long_val(op1) % divisor);                    \
+  (dst) = Val_long(Long_val(op1) % tmp);                        \
 }
 
 #endif
@@ -311,12 +311,11 @@
   (dst) = Field((block), (ind));
 
 #define GETFLOATFIELD(ind, block, dst, frame_sz) {               \
-  value flt;                                                     \
   double d = Double_field((block), (ind));                       \
-  Ocamlcc_alloc_small(flt, Double_wosize, Double_tag,            \
+  Ocamlcc_alloc_small(tmp, Double_wosize, Double_tag,            \
                       caml_extern_sp = sp - frame_sz,);          \
-  Store_double_val(flt, d);                                      \
-  (dst) = flt;                                                   \
+  Store_double_val(tmp, d);                                      \
+  (dst) = tmp;                                                   \
 }
 
 
@@ -340,18 +339,18 @@
 /* C function call */
 
 #define CCALL(dst, fname, frame_sz, args...) {                         \
-  long ocamlcc_save_sp_offset = (char *) caml_stack_high - (char *) sp; \
+  tmp = (char *) caml_stack_high - (char *) sp;                        \
   caml_extern_sp = sp - frame_sz;                                      \
   dst fname(args);                                                     \
-  sp = (value *) ((char *) caml_stack_high - ocamlcc_save_sp_offset);  \
+  sp = (value *) ((char *) caml_stack_high - tmp);                     \
 }
 
 #define BIG_CCALL(nargs, dst, fname, frame_sz, args...) {              \
-  long ocamlcc_save_sp_offset = (char *) caml_stack_high - (char *) sp; \
   value arg_tbl[nargs] = { args };                                     \
+  tmp = (char *) caml_stack_high - (char *) sp;                        \
   caml_extern_sp = sp - frame_sz;                                      \
   dst fname(arg_tbl, nargs);                                           \
-  sp = (value *) ((char *) caml_stack_high - ocamlcc_save_sp_offset);  \
+  sp = (value *) ((char *) caml_stack_high - tmp);                     \
 }
 
 
