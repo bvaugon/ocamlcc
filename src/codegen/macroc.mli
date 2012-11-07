@@ -27,8 +27,8 @@ and macro =
   | ADDINT of expr * expr * lvalue
   | SUBINT of expr * expr * lvalue
   | MULINT of expr * expr * lvalue
-  | DIVINT of expr * expr * lvalue * int
-  | MODINT of expr * expr * lvalue * int
+  | DIVINT of expr * expr * lvalue option * int
+  | MODINT of expr * expr * lvalue option * int
   | ANDINT of expr * expr * lvalue
   | ORINT of expr * expr * lvalue
   | XORINT of expr * expr * lvalue

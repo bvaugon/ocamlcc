@@ -61,7 +61,7 @@
     caml_extern_sp = sp - frame_sz;                             \
     caml_raise_zero_divide();                                   \
   }                                                             \
-  (dst) = Val_long(caml_safe_div(Long_val(op1), tmp));          \
+  dst Val_long(caml_safe_div(Long_val(op1), tmp));              \
 }
 
 #define MODINT(op1, op2, dst, frame_sz) {                       \
@@ -70,7 +70,7 @@
     caml_extern_sp = sp - frame_sz;                             \
     caml_raise_zero_divide();                                   \
   }                                                             \
-  (dst) = Val_long(caml_safe_mod(Long_val(op1), tmp));          \
+  dst Val_long(caml_safe_mod(Long_val(op1), tmp));              \
 }
 
 #else
@@ -81,7 +81,7 @@
     caml_extern_sp = sp - frame_sz;                             \
     caml_raise_zero_divide();                                   \
   }                                                             \
-  (dst) = Val_long(Long_val(op1) / tmp);                        \
+  dst Val_long(Long_val(op1) / tmp);                            \
 }
 
 #define MODINT(op1, op2, dst, frame_sz) {                       \
@@ -90,7 +90,7 @@
     caml_extern_sp = sp - frame_sz;                             \
     caml_raise_zero_divide();                                   \
   }                                                             \
-  (dst) = Val_long(Long_val(op1) % tmp);                        \
+  dst Val_long(Long_val(op1) % tmp);                            \
 }
 
 #endif

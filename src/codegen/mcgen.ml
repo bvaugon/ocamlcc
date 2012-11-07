@@ -279,20 +279,29 @@ let compute_fun prims dbug funs tc_set fun_id
   in
   let export_binapp ind binop =
     let dst_id = get_accu_id (ind + 1) in
-    if is_read dst_id then (
+    let may_raise = binop = Divint || binop = Modint in
+    if is_read dst_id || may_raise then (
       assert (is_cell dst_id);
       let op1_id = get_accu_id ind in
       let op2_id = get_stack_id ind 0 in
       let op1 = export_val_desc op1_id in
       let op2 = export_val_desc op2_id in
-      let dst = export_cell dst_id in
       putm (
         match binop with
+          | Divint | Modint ->
+            let frame_sz = compute_frame_size (ind + 1) in
+            let dst =
+              if is_read dst_id then Some (export_cell dst_id) else None
+            in
+            if binop = Divint then DIVINT (op1, op2, dst, frame_sz)
+            else MODINT (op1, op2, dst, frame_sz)
+          | _ ->
+        let dst = export_cell dst_id in
+        match binop with
+          | Divint | Modint -> assert false
           | Addint        -> ADDINT (op1, op2, dst)
           | Subint        -> SUBINT (op1, op2, dst)
           | Mulint        -> MULINT (op1, op2, dst)
-          | Divint        -> DIVINT (op1, op2, dst, compute_frame_size (ind+1))
-          | Modint        -> MODINT (op1, op2, dst, compute_frame_size (ind+1))
           | Andint        -> ANDINT (op1, op2, dst)
           | Orint         -> ORINT (op1, op2, dst)
           | Xorint        -> XORINT (op1, op2, dst)

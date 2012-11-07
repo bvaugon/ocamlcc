@@ -48,10 +48,10 @@ and print_macro oc macro =
         print_lvalue dst
     | DIVINT (op1, op2, dst, frame_sz) ->
       fprintf oc "DIVINT(%a, %a, %a, %d)" print_expr op1 print_expr op2
-        print_lvalue dst frame_sz
+        print_dst dst frame_sz
     | MODINT (op1, op2, dst, frame_sz) ->
       fprintf oc "MODINT(%a, %a, %a, %d)" print_expr op1 print_expr op2
-        print_lvalue dst frame_sz
+        print_dst dst frame_sz
     | ANDINT (op1, op2, dst) ->
       fprintf oc "ANDINT(%a, %a, %a)" print_expr op1 print_expr op2
         print_lvalue dst
@@ -289,6 +289,11 @@ and print_lvalue_opt oc lvalue_opt =
   match lvalue_opt with
     | Some lvalue -> fprintf oc "%a =" print_lvalue lvalue
     | None -> ()
+
+and print_dst oc lvalue_opt =
+  match lvalue_opt with
+    | Some lvalue -> fprintf oc "%a =" print_lvalue lvalue
+    | None -> fprintf oc "(void)"
 
 and print_expr oc expr =
   match expr with
