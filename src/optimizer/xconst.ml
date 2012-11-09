@@ -316,7 +316,7 @@ let compute_gc_read prims body states fun_tys =
           | _ -> ()
         end;
       | StaticApply (_, ptr) ->
-        let (_, _, r_gc) = IMap.find ptr.pointed.index fun_tys in
+        let (_, _, r_gc, use_env) = IMap.find ptr.pointed.index fun_tys in
         if !r_gc then (
           run_gc := true;
           match (states.(ind), states.(ind + 1)) with
@@ -324,14 +324,14 @@ let compute_gc_read prims body states fun_tys =
                Some { accu = _ ; stack = stack }) ->
               gc_read :=
                 Stk.fold_left (fun acc id -> ISet.add id acc)
-                (ISet.add accu !gc_read) stack
+                (if !use_env then ISet.add accu !gc_read else !gc_read) stack
             | _ -> ()
         );
       | DynamicAppterm (_, _) | PartialAppterm (_, _)
       | SpecialAppterm (_, _) ->
         run_gc := true;
       | StaticAppterm (_, _, ptr) ->
-        let (_, _, r_gc) = IMap.find ptr.pointed.index fun_tys in
+        let (_, _, r_gc, _) = IMap.find ptr.pointed.index fun_tys in
         if !r_gc then run_gc := true;
       | Closure _ | Closurerec _ | Makeblock _ | Makefloatblock _
       | Getfloatfield _ ->
@@ -389,7 +389,6 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
       | None -> raise Not_found
       | Some { accu = _ ; stack = stack } -> (Stk.acc n stack)
   in
-  let contains_offsetclosure = ref false in
   let return_ptr = ref false in
   let int_set = ref ISet.empty in
   let return_set = ref ISet.empty in
@@ -428,8 +427,10 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
         for i = 0 to narg - 1 do ptr_read (get_stack_id ind i) done;
         ptr_write (get_accu_id (ind + 1));
       | StaticApply (narg, ptr) ->
-        let (ptr_args, ptr_res, _) = IMap.find ptr.pointed.index fun_tys in
-        ptr_read (get_accu_id ind);
+        let (ptr_args, ptr_res, _, use_env) =
+          IMap.find ptr.pointed.index fun_tys
+        in
+        if !use_env then ptr_read (get_accu_id ind);
         for i = 0 to narg - 1 do
           if ptr_args.(i) then ptr_read (get_stack_id ind i)
           else int_read (get_stack_id ind i)
@@ -442,8 +443,10 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
         for i = 0 to narg - 1 do ptr_read (get_stack_id ind i) done;
         return_ptr := true;
       | StaticAppterm (narg, _, ptr) ->
-        let (ptr_args, ptr_res, _) = IMap.find ptr.pointed.index fun_tys in
-        ptr_read (get_accu_id ind);
+        let (ptr_args, ptr_res, _, use_env) =
+          IMap.find ptr.pointed.index fun_tys
+        in
+        if !use_env then ptr_read (get_accu_id ind);
         for i = 0 to narg - 1 do
           if ptr_args.(i) then ptr_read (get_stack_id ind i)
           else int_read (get_stack_id ind i)
@@ -467,7 +470,6 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
         int_read (get_accu_id (ind + 1));
         for i = 0 to nf - 1 do ptr_write (get_stack_id (ind + 1) i) done;
       | Offsetclosure _ ->
-        contains_offsetclosure := true;
         ptr_write (get_accu_id (ind + 1));
       | Getglobal _ ->
         ptr_write (get_accu_id (ind + 1));
@@ -644,17 +646,14 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
     let f id vd ((arg_acc, env_acc) as acc) =
       match vd with
         | VArg _ -> (ISet.add id arg_acc, env_acc)
-        | VEnv _ -> (arg_acc, ISet.add id env_acc)
+        | VEnv _ | VClsr _ -> (arg_acc, ISet.add id env_acc)
         | _ -> acc
     in
     IMap.fold f idvd_map (ISet.empty, ISet.empty)
   in
   let gc_read = ref gc_read in
   let full_read_set = ISet.union !ptr_read_set !int_read_set in
-  let use_env =
-    !contains_offsetclosure ||
-      not (ISet.is_empty (ISet.inter env_set full_read_set))
-  in
+  let use_env = not (ISet.is_empty (ISet.inter env_set full_read_set)) in
   let read_set = ISet.inter full_read_set cell_set in
   let read_args =
     ISet.fold
@@ -706,16 +705,18 @@ let extract_constants prims funs =
   let infos = IMap.fold extract_infos funs [] in
   let fun_tys =
     let f id fun_desc acc =
-      IMap.add id (Array.make fun_desc.arity false, ref false, ref false) acc
+      IMap.add id
+        (Array.make fun_desc.arity false, ref false, ref false, ref false)
+        acc
     in
     IMap.fold f funs IMap.empty
   in
   let update_fun_tys (sets_map, flag) (id, fun_desc, states, idvd_map, arg_ids)=
     let (gc_read, r_gc) = compute_gc_read prims fun_desc.body states fun_tys in
-    let (ptr_set, read_set, p_res, read_args, use_env) =
+    let (ptr_set, read_set, p_res, read_args, u_env) =
       compute_ptrs prims fun_desc.body states idvd_map gc_read fun_tys
     in
-    let (ptr_args, ptr_res, run_gc) = IMap.find id fun_tys in
+    let (ptr_args, ptr_res, run_gc, use_env) = IMap.find id fun_tys in
     let new_flag = ref flag in
     for i = 0 to fun_desc.arity - 1 do
       if ISet.mem arg_ids.(i) ptr_set && not ptr_args.(i) then (
@@ -731,7 +732,11 @@ let extract_constants prims funs =
       run_gc := true;
       new_flag := true;
     );
-    (IMap.add id (ptr_set, read_set, read_args, use_env) sets_map, !new_flag)
+    if u_env && not !use_env then (
+      use_env := true;
+      new_flag := true;
+    );
+    (IMap.add id (ptr_set, read_set, read_args) sets_map, !new_flag)
   in
   let rec fix_point () =
     Options.message ".";
@@ -742,9 +747,8 @@ let extract_constants prims funs =
   in
   let sets_map = fix_point () in
   let compute_dzeta_code acc (id, fun_desc, states, idvd_map, _) =
-    let (ptr_set, read_set, read_args, use_env) = IMap.find id sets_map in
-    IMap.add id
-      (fun_desc, states, idvd_map, ptr_set, read_set, read_args, use_env) acc
+    let (ptr_set, read_set, read_args) = IMap.find id sets_map in
+    IMap.add id (fun_desc, states, idvd_map, ptr_set, read_set, read_args) acc
   in
   Options.verb_stop();
   let dzeta_code = List.fold_left compute_dzeta_code IMap.empty infos in

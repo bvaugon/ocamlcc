@@ -150,7 +150,7 @@ let cc_run args =
 ;;
 
 (***)
-
+Printexc.record_backtrace true;;
 let b2c bfile cfile stop =
   let (prims, data, code, dbug) = Loader.load bfile in
   let funs = Body.create code in
@@ -161,11 +161,13 @@ let b2c bfile cfile stop =
   Remapstk.remap_stack funs;
   Cleanclsrs.clean_closures funs;
   let (dzeta_code, fun_tys) = Xconst.extract_constants prims funs in
-  let tc_set = Body.compute_tc_set funs dzeta_code in
+  let tc_set = Body.compute_tc_set funs fun_tys in
   let (funs, dzeta_code, fun_tys, tc_set) =
     Cleanfuns.clean_functions funs dzeta_code fun_tys tc_set
   in
-  let macroc = Mcgen.gen_macroc prims data dbug funs dzeta_code tc_set in
+  let macroc =
+    Mcgen.gen_macroc prims data dbug funs fun_tys dzeta_code tc_set
+  in
   Codegen.gen_code cfile macroc;
   if !Options.stat then Stat.analyse stdout funs dzeta_code fun_tys tc_set;
   if stop then exit 0;
