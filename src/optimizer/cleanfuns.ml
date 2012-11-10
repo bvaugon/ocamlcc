@@ -39,7 +39,7 @@ let search_funs performed tosearch states read_set body =
   f 0 tosearch
 ;;
 
-let clean_functions funs dzeta_code fun_tys tc_set =
+let clean_functions funs ids_infos fun_infos tc_set =
   Options.verb_start "+ Cleaning functions.";
   let rec search performed tosearch =
     if ISet.is_empty tosearch then performed else
@@ -47,9 +47,10 @@ let clean_functions funs dzeta_code fun_tys tc_set =
       let new_performed = ISet.add id performed in
       let new_tosearch = ISet.remove id tosearch in
       let body = (IMap.find id funs).body in
-      let (_, states, _, _, read_set, _) = IMap.find id dzeta_code in
+      let ids_info = IMap.find id ids_infos in
       let new_tosearch2 =
-        search_funs new_performed new_tosearch states read_set body
+        search_funs new_performed new_tosearch ids_info.states ids_info.read_set
+          body
       in
       search new_performed new_tosearch2
   in
@@ -58,11 +59,11 @@ let clean_functions funs dzeta_code fun_tys tc_set =
   Options.message ".";
   let new_funs = IMap.filter filter funs in
   Options.message ".";
-  let new_dzeta_code = IMap.filter filter dzeta_code in
+  let new_ids_infos = IMap.filter filter ids_infos in
   Options.message ".";
-  let new_fun_tys = IMap.filter filter fun_tys in
+  let new_fun_infos = IMap.filter filter fun_infos in
   Options.message ".";
   let new_tc_set = ISet.inter tc_set used in
   Options.verb_stop ();
-  (new_funs, new_dzeta_code, new_fun_tys, new_tc_set)
+  (new_funs, new_ids_infos, new_fun_infos, new_tc_set)
 ;;

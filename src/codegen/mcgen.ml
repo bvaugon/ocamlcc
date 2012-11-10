@@ -130,15 +130,21 @@ let compute_fun_init puti use_env arity arg_depths read_args =
       done
 ;;
 
-let compute_fun prims dbug funs fun_tys tc_set fun_id
-    (fun_desc, states, idvd_map, ptr_set, read_set, read_args) =
+let compute_fun prims dbug funs fun_infos tc_set fun_id {
+  fun_desc  = fun_desc;
+  states    = states;
+  idvd_map  = idvd_map;
+  ptr_set   = ptr_set;
+  read_set  = read_set;
+  read_args = read_args;
+} =
   let body = fun_desc.body in
   let instr_nb = Array.length body in
   let instrs = ref [] in
   let puti instr = instrs := instr :: !instrs in
   let putm macro = puti (IMacro macro) in
   let catch_list = ref [] in
-  let use_env = Body.test_useenv fun_tys fun_desc in
+  let use_env = Body.test_useenv fun_infos fun_desc in
   let cfun_arity = if use_env then fun_desc.arity + 1 else fun_desc.arity in
   let is_read id = ISet.mem id read_set in
   let is_ptr id = ISet.mem id ptr_set in
@@ -406,7 +412,7 @@ let compute_fun prims dbug funs fun_tys tc_set fun_id
             let curr_frame_sz = compute_frame_size ind in
             let next_frame_sz = compute_frame_size (ind + 1) in
             let useenv =
-              Body.test_useenv fun_tys (IMap.find ptr.pointed.index funs)
+              Body.test_useenv fun_infos (IMap.find ptr.pointed.index funs)
             in
             let cfun_nargs = if useenv then nargs + 1 else nargs in
             let env = if useenv then Some (get_clsr ()) else None in
@@ -446,7 +452,7 @@ let compute_fun prims dbug funs fun_tys tc_set fun_id
           | StaticAppterm (nargs, _, ptr) ->
             if !Options.trace then puti (ITrace (MLAppterm fun_id));
             let useenv =
-              Body.test_useenv fun_tys (IMap.find ptr.pointed.index funs)
+              Body.test_useenv fun_infos (IMap.find ptr.pointed.index funs)
             in
             let env = if useenv then Some (get_clsr ()) else None in
             let callee_nargs = if useenv then nargs + 1 else nargs in
@@ -826,25 +832,29 @@ let compute_fun prims dbug funs fun_tys tc_set fun_id
   compute_fun_def fun_desc use_env locals body location
 ;;
 
-let gen_macroc prims data dbug funs fun_tys dzeta_code tc_set =
+let gen_macroc prims data dbug funs fun_infos ids_infos tc_set =
   Options.verb_start "+ Generating C code.";
-  let main = IMap.find 0 dzeta_code in
-  let rest = IMap.remove 0 dzeta_code in
-  let fold_fun_decl _ (fd, _, _, _, _, _) acc =
-    let use_env = Body.test_useenv fun_tys fd in
-    let inlinable = Body.test_inlinable funs fun_tys fd in
-    let location = compute_location funs dbug fd.fun_id in
-    let fun_decl = compute_fun_decl fd use_env inlinable location in
+  let main = IMap.find 0 ids_infos in
+  let rest = IMap.remove 0 ids_infos in
+  let fold_fun_decl _ ids_info acc =
+    let use_env = Body.test_useenv fun_infos ids_info.fun_desc in
+    let inlinable = Body.test_inlinable funs fun_infos ids_info.fun_desc in
+    let location = compute_location funs dbug ids_info.fun_desc.fun_id in
+    let fun_decl =
+      compute_fun_decl ids_info.fun_desc use_env inlinable location
+    in
     fun_decl :: acc
   in
-  let fold_fun_def fun_id dzeta acc =
-    let fun_def = compute_fun prims dbug funs fun_tys tc_set fun_id dzeta in
+  let fold_fun_def fun_id ids_info acc =
+    let fun_def =
+      compute_fun prims dbug funs fun_infos tc_set fun_id ids_info
+    in
     fun_def :: acc
   in
   let max_arity = Body.compute_maximum_arity funs in
   let fun_decls = List.rev (IMap.fold fold_fun_decl rest []) in
   Options.message ".";
-  let main_def = compute_fun prims dbug funs fun_tys tc_set 0 main in
+  let main_def = compute_fun prims dbug funs fun_infos tc_set 0 main in
   Options.message ".";
   let fun_defs = List.rev (main_def :: IMap.fold fold_fun_def rest []) in
   Options.verb_stop ();

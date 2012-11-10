@@ -160,16 +160,16 @@ let b2c bfile cfile stop =
   (* WARNING: remap_stack change bytecode in place *)
   Remapstk.remap_stack funs;
   Cleanclsrs.clean_closures funs;
-  let (dzeta_code, fun_tys) = Xconst.extract_constants prims funs in
-  let tc_set = Body.compute_tc_set funs fun_tys in
-  let (funs, dzeta_code, fun_tys, tc_set) =
-    Cleanfuns.clean_functions funs dzeta_code fun_tys tc_set
+  let (ids_infos, fun_infos) = Xconst.extract_constants prims funs in
+  let tc_set = Body.compute_tc_set funs fun_infos in
+  let (funs, ids_infos, fun_infos, tc_set) =
+    Cleanfuns.clean_functions funs ids_infos fun_infos tc_set
   in
   let macroc =
-    Mcgen.gen_macroc prims data dbug funs fun_tys dzeta_code tc_set
+    Mcgen.gen_macroc prims data dbug funs fun_infos ids_infos tc_set
   in
   Codegen.gen_code cfile macroc;
-  if !Options.stat then Stat.analyse stdout funs dzeta_code fun_tys tc_set;
+  if !Options.stat then Stat.analyse stdout funs ids_infos fun_infos tc_set;
   if stop then exit 0;
 ;;
 

@@ -277,7 +277,7 @@ let print_val_desc oc vd =
     | VCell -> Printf.fprintf oc "Cell"
 ;;
 
-let print_dzeta_code oc dzeta_code =
+let print_ids_infos oc ids_infos =
   let print_body_states oc body states idvd_map =
     let pi instr = Printf.fprintf oc "%s\n" (string_of_bc instr.bc) in
     let ps { accu = accu ; stack = stack } =
@@ -312,10 +312,11 @@ let print_dzeta_code oc dzeta_code =
     IMap.iter f idvd_map;
     Printf.fprintf oc "\n";
   in
-  let f _ (fun_desc, states, idvd_map, ptr_set, read_set, _) =
-    print_body_states oc fun_desc.body states idvd_map;
-    print_val_desc_map oc idvd_map ptr_set read_set;
+  let f _ ids_info =
+    print_body_states oc ids_info.fun_desc.body ids_info.states
+      ids_info.idvd_map;
+    print_val_desc_map oc ids_info.idvd_map ids_info.ptr_set ids_info.read_set;
     Printf.fprintf oc "\n\n";
   in
-  IMap.iter f dzeta_code
+  IMap.iter f ids_infos
 ;;

@@ -20,6 +20,8 @@ type section = Code | Dlpt | Dlls | Prim | Data | Symb | Crcs | Dbug
 
 type index = (section * int * int) list
 
+(***)
+
 type instr = {
   addr : int;
   mutable index : int;
@@ -189,4 +191,19 @@ type val_desc =
   | VArg of int             (* Function argument *)
   | VPtr of ptr             (* Code pointer *)
   | VCell                   (* Cells *)
-;;
+
+type fun_info = {
+  ptr_args : bool array;  (* Function arguments may be pointers    *)
+  mutable ptr_res : bool; (* Function result may be a pointer      *)
+  mutable run_gc  : bool; (* Function call may run the GC          *)
+  mutable use_env : bool; (* Function body may use its environment *)
+}
+
+type ids_info = {
+  fun_desc  : fun_desc;              (* Function description                *)
+  states    : int desc option array; (* Stack cells and accu ids (by instr) *)
+  idvd_map  : val_desc Tools.IMap.t; (* Ids descriptions                    *)
+  ptr_set   : Tools.ISet.t;          (* GC register variable ids            *)
+  read_set  : Tools.ISet.t;          (* Read variable ids                   *)
+  read_args : Tools.ISet.t;          (* Read argument ids                   *)
+}

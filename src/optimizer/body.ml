@@ -15,18 +15,17 @@ open Tools;;
 
 (***)
 
-let test_useenv fun_tys fun_desc =
-  let (_, _, _, use_env) = IMap.find fun_desc.fun_id fun_tys in
-  !use_env
+let test_useenv fun_infos fun_desc =
+  (IMap.find fun_desc.fun_id fun_infos).use_env
 ;;
 
-let test_inlinable funs fun_tys fun_desc =
+let test_inlinable funs fun_infos fun_desc =
   match !Options.arch with
     | GEN_ARCH | NO_ARCH -> true
     | X86 | X86_64 ->
       let body = fun_desc.body in
       let cfun_arity =
-        if test_useenv fun_tys fun_desc then fun_desc.arity + 1
+        if test_useenv fun_infos fun_desc then fun_desc.arity + 1
         else fun_desc.arity
       in
       let len = Array.length body in
@@ -41,7 +40,7 @@ let test_inlinable funs fun_tys fun_desc =
             | SpecialAppterm _ -> false
             | StaticAppterm (nargs, _, ptr) ->
               let callee_nargs =
-                if test_useenv fun_tys (IMap.find ptr.pointed.index funs)
+                if test_useenv fun_infos (IMap.find ptr.pointed.index funs)
                 then nargs + 1
                 else nargs
               in
@@ -56,13 +55,13 @@ let test_inlinable funs fun_tys fun_desc =
 
 (***)
 
-let compute_tc_set funs fun_tys =
+let compute_tc_set funs fun_infos =
   let pass id fun_desc ((set, _) as acc) =
     if ISet.mem id set then acc else
       let body = fun_desc.body in
       let len = Array.length body in
       let cfun_arity =
-        if test_useenv fun_tys fun_desc then fun_desc.arity + 1
+        if test_useenv fun_infos fun_desc then fun_desc.arity + 1
         else fun_desc.arity
       in
       let rec f i =
@@ -70,7 +69,7 @@ let compute_tc_set funs fun_tys =
           match body.(i).bc with
             | StaticAppterm (nargs, _, ptr) ->
               let callee_arity =
-                if test_useenv fun_tys (IMap.find ptr.pointed.index funs)
+                if test_useenv fun_infos (IMap.find ptr.pointed.index funs)
                 then nargs + 1
                 else nargs
               in

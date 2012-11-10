@@ -27,7 +27,7 @@ let print_flag oc title =
   output_char oc '\n';
 ;;
 
-let functions oc funs fun_tys tc_set =
+let functions oc funs fun_infos tc_set =
   let main = (IMap.find 0 funs).body in
   let others = IMap.remove 0 funs in
   let main_size = Array.length main in
@@ -39,7 +39,7 @@ let functions oc funs fun_tys tc_set =
       with Not_found -> IMap.add arity 1 arities
     in
     let new_inln_nb =
-      if Body.test_inlinable funs fun_tys fun_desc then inln_nb + 1
+      if Body.test_inlinable funs fun_infos fun_desc then inln_nb + 1
       else inln_nb
     in
     (nb+1, tot+sz, min sz mini, max sz maxi, new_arities, new_inln_nb)
@@ -115,20 +115,20 @@ Special static applies -> %6d  (%.2f%%)\n\
     !notc (percentage !notc !stapp)
 ;;
 
-let xconst_fun_tys oc fun_tys =
+let xconst_fun_infos oc fun_infos =
   let fun_nb = ref 0 in
   let arg_nb = ref 0 in
   let ptr_arg_nb = ref 0 in
   let ptr_res_nb = ref 0 in
   let run_gc_nb = ref 0 in
-  let f _ (ptr_args, ptr_res, run_gc, _) =
+  let f _ fun_info =
     incr fun_nb;
-    arg_nb := !arg_nb + Array.length ptr_args;
-    Array.iter (fun b -> if b then incr ptr_arg_nb) ptr_args;
-    if !ptr_res then incr ptr_res_nb;
-    if !run_gc then incr run_gc_nb;
+    arg_nb := !arg_nb + Array.length fun_info.ptr_args;
+    Array.iter (fun b -> if b then incr ptr_arg_nb) fun_info.ptr_args;
+    if fun_info.ptr_res then incr ptr_res_nb;
+    if fun_info.run_gc then incr run_gc_nb;
   in
-  IMap.iter f (IMap.remove 0 fun_tys);
+  IMap.iter f (IMap.remove 0 fun_infos);
   Printf.fprintf oc "\n\
 \                       -> %6d functions\n\
 \                       -> %6d arguments\n\
@@ -141,23 +141,23 @@ Funs that may run GC   -> %6d  (%.2f%%)\n\n"
     (percentage !run_gc_nb !fun_nb)
 ;;
 
-let xconst_ids oc dzeta_code =
+let xconst_ids oc ids_infos =
   let id_cnt = ref 0 in
   let cell_cnt = ref 0 in
   let ptr_cnt = ref 0 in
   let read_cnt = ref 0 in
-  let count _ (_, _, vd_map, ptr_set, read_set, _) =
+  let count _ ids_info =
     let f id vd =
       incr id_cnt;
       if vd = VCell then (
         incr cell_cnt;
-        if ISet.mem id ptr_set then incr ptr_cnt;
-        if ISet.mem id read_set then incr read_cnt;
+        if ISet.mem id ids_info.ptr_set then incr ptr_cnt;
+        if ISet.mem id ids_info.read_set then incr read_cnt;
       )
     in
-    IMap.iter f vd_map;
+    IMap.iter f ids_info.idvd_map;
   in
-  IMap.iter count dzeta_code;
+  IMap.iter count ids_infos;
   Printf.fprintf oc "\n\
 \                       -> %6d identifiers\n\
 \n\
@@ -170,15 +170,15 @@ Read cells             -> %6d  (%.2f%% of idents, %.2f%% of cells)\n\n"
     !read_cnt (percentage !read_cnt !id_cnt) (percentage !read_cnt !cell_cnt)
 ;;
 
-let analyse oc funs dzeta_code fun_tys tc_set =
+let analyse oc funs ids_infos fun_infos tc_set =
   print_flag oc " Functions ";
-  functions oc funs fun_tys tc_set;
+  functions oc funs fun_infos tc_set;
   print_flag oc " Function calls ";
   calls oc funs tc_set;
   print_flag oc " Function types ";
-  xconst_fun_tys oc fun_tys;
+  xconst_fun_infos oc fun_infos;
   print_flag oc " Values ";
-  xconst_ids oc dzeta_code;
+  xconst_ids oc ids_infos;
   print_flag oc " End ";
   flush oc;
 ;;

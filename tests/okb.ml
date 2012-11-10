@@ -338,7 +338,7 @@ let reduce xL xM =
 (* A more efficient version of can (rewrite1 (xL,R)) for R arbitrary *)
 let reducible xL = let rec redrec xM =
                      try
-                       matching xL xM; true
+                       ignore (matching xL xM); true
                      with Failure _ ->
                        match xM with Term(_,sons) -> exists redrec sons
                          |         _     -> false

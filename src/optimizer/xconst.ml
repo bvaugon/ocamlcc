@@ -300,7 +300,7 @@ let unify_ids states equivs copies idvd_map =
   (states', idvd_map''')
 ;;
 
-let compute_gc_read prims body states fun_tys =
+let compute_gc_read prims body states fun_infos =
   let gc_read = ref ISet.empty in
   let run_gc = ref false in
   let f ind instr =
@@ -316,23 +316,24 @@ let compute_gc_read prims body states fun_tys =
           | _ -> ()
         end;
       | StaticApply (_, ptr) ->
-        let (_, _, r_gc, use_env) = IMap.find ptr.pointed.index fun_tys in
-        if !r_gc then (
+        let fun_info = IMap.find ptr.pointed.index fun_infos in
+        if fun_info.run_gc then (
           run_gc := true;
           match (states.(ind), states.(ind + 1)) with
             | (Some { accu = accu ; stack = _ },
                Some { accu = _ ; stack = stack }) ->
               gc_read :=
                 Stk.fold_left (fun acc id -> ISet.add id acc)
-                (if !use_env then ISet.add accu !gc_read else !gc_read) stack
+                (if fun_info.use_env then ISet.add accu !gc_read
+                 else !gc_read) stack
             | _ -> ()
         );
       | DynamicAppterm (_, _) | PartialAppterm (_, _)
       | SpecialAppterm (_, _) ->
         run_gc := true;
       | StaticAppterm (_, _, ptr) ->
-        let (_, _, r_gc, _) = IMap.find ptr.pointed.index fun_tys in
-        if !r_gc then run_gc := true;
+        let fun_info = IMap.find ptr.pointed.index fun_infos in
+        if fun_info.run_gc then run_gc := true;
       | Closure _ | Closurerec _ | Makeblock _ | Makefloatblock _
       | Getfloatfield _ ->
         run_gc := true;
@@ -373,7 +374,7 @@ let compute_gc_read prims body states fun_tys =
   (!gc_read, !run_gc)
 ;;
 
-let compute_ptrs prims body states idvd_map gc_read fun_tys =
+let compute_ptrs prims body states idvd_map gc_read fun_infos =
   let set_add set id = set := ISet.add id !set in
   let map_add map id1 id2 =
     try map := IMap.add id1 (ISet.add id2 (IMap.find id1 !map)) !map
@@ -427,15 +428,13 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
         for i = 0 to narg - 1 do ptr_read (get_stack_id ind i) done;
         ptr_write (get_accu_id (ind + 1));
       | StaticApply (narg, ptr) ->
-        let (ptr_args, ptr_res, _, use_env) =
-          IMap.find ptr.pointed.index fun_tys
-        in
-        if !use_env then ptr_read (get_accu_id ind);
+        let fun_info = IMap.find ptr.pointed.index fun_infos in
+        if fun_info.use_env then ptr_read (get_accu_id ind);
         for i = 0 to narg - 1 do
-          if ptr_args.(i) then ptr_read (get_stack_id ind i)
+          if fun_info.ptr_args.(i) then ptr_read (get_stack_id ind i)
           else int_read (get_stack_id ind i)
         done;
-        if !ptr_res then ptr_write (get_accu_id (ind + 1))
+        if fun_info.ptr_res then ptr_write (get_accu_id (ind + 1))
         else int_write (get_accu_id (ind + 1));
       | DynamicAppterm (narg, _) | PartialAppterm (narg, _)
       | SpecialAppterm (narg, _) ->
@@ -443,15 +442,13 @@ let compute_ptrs prims body states idvd_map gc_read fun_tys =
         for i = 0 to narg - 1 do ptr_read (get_stack_id ind i) done;
         return_ptr := true;
       | StaticAppterm (narg, _, ptr) ->
-        let (ptr_args, ptr_res, _, use_env) =
-          IMap.find ptr.pointed.index fun_tys
-        in
-        if !use_env then ptr_read (get_accu_id ind);
+        let fun_info = IMap.find ptr.pointed.index fun_infos in
+        if fun_info.use_env then ptr_read (get_accu_id ind);
         for i = 0 to narg - 1 do
-          if ptr_args.(i) then ptr_read (get_stack_id ind i)
+          if fun_info.ptr_args.(i) then ptr_read (get_stack_id ind i)
           else int_read (get_stack_id ind i)
         done;
-        if !ptr_res then return_ptr := true;
+        if fun_info.ptr_res then return_ptr := true;
       | Return _ ->
         return (get_accu_id ind);
         ptr_read (get_accu_id ind);
@@ -703,37 +700,43 @@ let extract_constants prims funs =
     (id, fun_desc, states', idvd_map', arg_ids) :: acc
   in
   let infos = IMap.fold extract_infos funs [] in
-  let fun_tys =
+  let fun_infos =
     let f id fun_desc acc =
-      IMap.add id
-        (Array.make fun_desc.arity false, ref false, ref false, ref false)
-        acc
+      IMap.add id {
+        ptr_args = Array.make fun_desc.arity false;
+        ptr_res = false;
+        run_gc = false;
+        use_env = false;
+      } acc
     in
     IMap.fold f funs IMap.empty
   in
-  let update_fun_tys (sets_map, flag) (id, fun_desc, states, idvd_map, arg_ids)=
-    let (gc_read, r_gc) = compute_gc_read prims fun_desc.body states fun_tys in
-    let (ptr_set, read_set, p_res, read_args, u_env) =
-      compute_ptrs prims fun_desc.body states idvd_map gc_read fun_tys
+  let update_fun_infos (sets_map, flag)
+      (id, fun_desc, states, idvd_map, arg_ids) =
+    let (gc_read, r_gc) =
+      compute_gc_read prims fun_desc.body states fun_infos
     in
-    let (ptr_args, ptr_res, run_gc, use_env) = IMap.find id fun_tys in
+    let (ptr_set, read_set, p_res, read_args, u_env) =
+      compute_ptrs prims fun_desc.body states idvd_map gc_read fun_infos
+    in
+    let fun_info = IMap.find id fun_infos in
     let new_flag = ref flag in
     for i = 0 to fun_desc.arity - 1 do
-      if ISet.mem arg_ids.(i) ptr_set && not ptr_args.(i) then (
-        ptr_args.(i) <- true;
+      if ISet.mem arg_ids.(i) ptr_set && not fun_info.ptr_args.(i) then (
+        fun_info.ptr_args.(i) <- true;
         new_flag := true;
       );
     done;
-    if p_res && not !ptr_res then (
-      ptr_res := true;
+    if p_res && not fun_info.ptr_res then (
+      fun_info.ptr_res <- true;
       new_flag := true;
     );
-    if r_gc && not !run_gc then (
-      run_gc := true;
+    if r_gc && not fun_info.run_gc then (
+      fun_info.run_gc <- true;
       new_flag := true;
     );
-    if u_env && not !use_env then (
-      use_env := true;
+    if u_env && not fun_info.use_env then (
+      fun_info.use_env <- true;
       new_flag := true;
     );
     (IMap.add id (ptr_set, read_set, read_args) sets_map, !new_flag)
@@ -741,16 +744,23 @@ let extract_constants prims funs =
   let rec fix_point () =
     Options.message ".";
     let (sets_map, flag) =
-      List.fold_left update_fun_tys (IMap.empty, false) infos
+      List.fold_left update_fun_infos (IMap.empty, false) infos
     in
     if flag then fix_point () else sets_map
   in
   let sets_map = fix_point () in
-  let compute_dzeta_code acc (id, fun_desc, states, idvd_map, _) =
+  let compute_ids_infos acc (id, fun_desc, states, idvd_map, _) =
     let (ptr_set, read_set, read_args) = IMap.find id sets_map in
-    IMap.add id (fun_desc, states, idvd_map, ptr_set, read_set, read_args) acc
+    IMap.add id {
+      fun_desc  = fun_desc;
+      states    = states;
+      idvd_map  = idvd_map;
+      ptr_set   = ptr_set;
+      read_set  = read_set;
+      read_args = read_args;
+    } acc
   in
   Options.verb_stop();
-  let dzeta_code = List.fold_left compute_dzeta_code IMap.empty infos in
-  (dzeta_code, fun_tys)
+  let ids_infos = List.fold_left compute_ids_infos IMap.empty infos in
+  (ids_infos, fun_infos)
 ;;
