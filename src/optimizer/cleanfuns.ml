@@ -19,22 +19,37 @@ let search_funs performed tosearch states read_set body =
     let index = ptr.pointed.index in
     if ISet.mem index performed then s else ISet.add index s
   in
-  let rec f i s =
-    if i = len then s else
-      match body.(i).bc with
+  let rec f ind s =
+    if ind = len then s else
+      match body.(ind).bc with
         | StaticApply (_, ptr) | StaticAppterm (_, _, ptr) ->
-          f (i + 1) (add ptr s)
+          f (ind + 1) (add ptr s)
         | Closure (_, ptr) ->
-          begin match states.(i + 1) with
+          begin match states.(ind + 1) with
             | Some { accu = accu ; stack = _ } when ISet.mem accu read_set ->
-              f (i + 1) (add ptr s)
+              f (ind + 1) (add ptr s)
             | Some _ | None ->
-              f (i + 1) s
+              f (ind + 1) s
           end
-        | Closurerec (_, _, ptr, ptrs) ->
-          f (i + 1) (Array.fold_right add ptrs (add ptr s))
+        | Closurerec (fun_nb, _, ptr, ptrs) ->
+          begin match states.(ind + 1) with
+            | Some { accu = accu ; stack = stack } ->
+              let rec g i =
+                if i = fun_nb - 1 then false
+                else if ISet.mem (Stk.acc i stack) read_set then true
+                else g (i + 1)
+              in
+              let used =
+                ISet.mem accu read_set ||
+                  ISet.mem (Stk.acc (fun_nb - 1) stack) read_set || g 0
+              in
+              if used then f (ind + 1) (Array.fold_right add ptrs (add ptr s))
+              else f (ind + 1) s
+            | None ->
+              f (ind + 1) s
+          end
         | _ ->
-          f (i + 1) s
+          f (ind + 1) s
   in
   f 0 tosearch
 ;;

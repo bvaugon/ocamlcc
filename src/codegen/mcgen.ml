@@ -139,7 +139,6 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
   read_args = read_args;
 } =
   let body = fun_desc.body in
-  let instr_nb = Array.length body in
   let instrs = ref [] in
   let puti instr = instrs := instr :: !instrs in
   let putm macro = puti (IMacro macro) in
@@ -154,17 +153,7 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
       | VArg _ -> true
       | _ -> false
   in
-  let use_tmp =
-    let rec f i =
-      if i = instr_nb then false else
-        match body.(i).bc with
-          | Closure _ | Closurerec _ | Makeblock _ | Makefloatblock _
-          | Ccall _ | Binapp Divint | Binapp Modint | Unapp Vectlength
-          | Getfloatfield _ -> true
-          | _ -> f (i + 1)
-    in
-    f 0
-  in
+  let use_tmp = ref false in
   let (args_ofs, arg_depths) =
     let f (n, depth, map) id =
       if is_ptr id then (n + 1, depth + 1, IMap.add n depth map)
@@ -279,7 +268,7 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
           | Offsetint n -> OFFSETINT (n, src, dst)
           | Negint      -> NEGINT (src, dst)
           | Isint       -> ISINT (src, dst)
-          | Vectlength  -> VECTLENGTH (src, dst)
+          | Vectlength  -> use_tmp := true; VECTLENGTH (src, dst)
       )
     )
   in
@@ -295,6 +284,7 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
       putm (
         match binop with
           | Divint | Modint ->
+            use_tmp := true;
             let frame_sz = compute_frame_size (ind + 1) in
             let dst =
               if is_read dst_id then Some (export_cell dst_id) else None
@@ -485,11 +475,13 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
         let dst_id = get_accu_id (ind + 1) in
         if is_read dst_id then (
           assert (is_cell dst_id);
+          use_tmp := true;
+          let env_usages =(IMap.find ptr.pointed.index fun_infos).env_usages in
           let accu_id = get_accu_id ind in
           let index = ptr.pointed.index in
           let arity = (IMap.find index funs).arity in
           let frame_sz = compute_frame_size ind in
-          if n > 0 && is_cell accu_id then
+          if n > 0 && is_cell accu_id && env_usages.(0) then
             putm (MAKE_SAVED_YOUNG_BLOCK (
               export_cell accu_id, 2 + n, closure_tag, LTmp, frame_sz))
           else
@@ -498,57 +490,85 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
                                  ECast (TValue, EFunPtr index)));
           putm (SET_YOUNG_FIELD (1, ELvalue LTmp, export_constint arity));
           if n > 0 then
-            putm (SET_YOUNG_FIELD (2, ELvalue LTmp, export_val_desc accu_id));
+            if env_usages.(0) then
+              putm (SET_YOUNG_FIELD (2, ELvalue LTmp, export_val_desc accu_id))
+            else
+              putm (SET_YOUNG_FIELD (2, ELvalue LTmp, export_constint 0));
           for i = 1 to n - 1 do
-            let stk_id = get_stack_id ind (i - 1) in
-            putm (SET_YOUNG_FIELD (i + 2, ELvalue LTmp,
-                                   export_val_desc stk_id));
+            if env_usages.(i) then
+              let stk_id = get_stack_id ind (i - 1) in
+              putm (SET_YOUNG_FIELD (i + 2, ELvalue LTmp,
+                                     export_val_desc stk_id))
+            else
+              putm (SET_YOUNG_FIELD (i + 2, ELvalue LTmp, export_constint 0))
           done;
           export_gen_acc (fun x -> x) (ELvalue LTmp) ind;
         );
 
-      | Closurerec (f, v, o, t) ->
+      | Closurerec (fun_nb, env_size, ptr, ptrs) ->
         let dst_id = get_accu_id (ind + 1) in
-        assert (is_cell dst_id);
-        let accu_id = get_accu_id ind in
-        let index = o.pointed.index in
-        let arity = (IMap.find index funs).arity in
-        let frame_sz = compute_frame_size ind in
-        if v > 0 && is_cell accu_id then
-          putm (MAKE_SAVED_YOUNG_BLOCK (
-            export_cell accu_id, 3 * f + v - 1, closure_tag, LTmp, frame_sz))
-        else
-          putm (MAKE_YOUNG_BLOCK (3 * f + v - 1, closure_tag, LTmp, frame_sz));
-        putm (SET_YOUNG_FIELD (0, ELvalue LTmp,
-                               ECast (TValue, EFunPtr index)));
-        putm (SET_YOUNG_FIELD (1, ELvalue LTmp, export_constint arity));
-        for i = 0 to Array.length t - 1 do
-          let index = t.(i).pointed.index in
+        let closure_used =
+          let rec f i =
+            if i = fun_nb then false
+            else if is_read (get_stack_id (ind + 1) i) then true
+            else f (i + 1)
+          in
+          is_read dst_id || f 0
+        in
+        if closure_used then (
+          use_tmp := true;
+          let index = ptr.pointed.index in
+          let env_usages = (IMap.find index fun_infos).env_usages in
+          let accu_id = get_accu_id ind in
           let arity = (IMap.find index funs).arity in
-          putm (SET_YOUNG_FIELD (3 * i + 2, ELvalue LTmp,
-                                 EMakeHeader (3 * (i + 1), TInfix_tag,
-                                              CCaml_white)));
-          putm (SET_YOUNG_FIELD (3 * i + 3, ELvalue LTmp,
+          let frame_sz = compute_frame_size ind in
+          if env_size > 0 && is_cell accu_id && env_usages.(0) then
+            putm (MAKE_SAVED_YOUNG_BLOCK (export_cell accu_id,
+                                          3 * fun_nb + env_size - 1,
+                                          closure_tag, LTmp, frame_sz))
+          else
+            putm (MAKE_YOUNG_BLOCK (3 * fun_nb + env_size - 1, closure_tag,
+                                    LTmp, frame_sz));
+          putm (SET_YOUNG_FIELD (0, ELvalue LTmp,
                                  ECast (TValue, EFunPtr index)));
-          putm (SET_YOUNG_FIELD (3 * i + 4, ELvalue LTmp,
-                                 export_constint arity));
-        done;
-        if v > 0 then
-          putm (SET_YOUNG_FIELD (3 * f - 1, ELvalue LTmp,
-                                 export_val_desc accu_id));
-        for i = 1 to v - 1 do
-          let stk_id = get_stack_id ind (i - 1) in
-          putm (SET_YOUNG_FIELD (3 * f - 1 + i,
-                                 ELvalue LTmp, export_val_desc stk_id));
-        done;
-        for i = 0 to f - 1 do
-          let stk_id = get_stack_id (ind + 1) (f - i - 1) in
-          if is_read stk_id then (
-            assert (is_cell stk_id);
-            putm (MOVE (EOffset (ELvalue LTmp, 3 * i), export_cell stk_id));
-          );
-        done;
-        export_gen_acc (fun x -> x) (ELvalue LTmp) ind;
+          putm (SET_YOUNG_FIELD (1, ELvalue LTmp, export_constint arity));
+          for i = 0 to Array.length ptrs - 1 do
+            let index = ptrs.(i).pointed.index in
+            let arity = (IMap.find index funs).arity in
+            putm (SET_YOUNG_FIELD (3 * i + 2, ELvalue LTmp,
+                                   EMakeHeader (3 * (i + 1), TInfix_tag,
+                                                CCaml_white)));
+            putm (SET_YOUNG_FIELD (3 * i + 3, ELvalue LTmp,
+                                   ECast (TValue, EFunPtr index)));
+            putm (SET_YOUNG_FIELD (3 * i + 4, ELvalue LTmp,
+                                   export_constint arity));
+          done;
+          if env_size > 0 then
+            if env_usages.(0) then
+              putm (SET_YOUNG_FIELD (3 * fun_nb - 1, ELvalue LTmp,
+                                     export_val_desc accu_id))
+            else
+              putm (SET_YOUNG_FIELD (3 * fun_nb - 1, ELvalue LTmp,
+                                     export_constint 0));
+          for i = 1 to env_size - 1 do
+            if env_usages.(i) then
+              let stk_id = get_stack_id ind (i - 1) in
+              putm (SET_YOUNG_FIELD (3 * fun_nb - 1 + i, ELvalue LTmp,
+                                     export_val_desc stk_id))
+            else
+              putm (SET_YOUNG_FIELD (3 * fun_nb - 1 + i, ELvalue LTmp,
+                                     export_constint 0));
+            
+          done;
+          for i = 0 to fun_nb - 1 do
+            let stk_id = get_stack_id (ind + 1) (fun_nb - i - 1) in
+            if is_read stk_id then (
+              assert (is_cell stk_id);
+              putm (MOVE (EOffset (ELvalue LTmp, 3 * i), export_cell stk_id));
+            );
+          done;
+          export_gen_acc (fun x -> x) (ELvalue LTmp) ind;
+        );
 
       | Offsetclosure ofs ->
         export_gen_acc export_clsr ofs ind
@@ -571,6 +591,7 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
         let dst_id = get_accu_id (ind + 1) in
         if is_read dst_id then (
           assert (is_cell dst_id);
+          use_tmp := true;
           let frame_sz = compute_frame_size ind in
           let accu_id = get_accu_id ind in
           let is_young = sz <= max_young_wosize in
@@ -603,6 +624,7 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
         let dst_id = get_accu_id (ind + 1) in
         if is_read dst_id then (
           assert (is_cell dst_id);
+          use_tmp := true;
           let frame_sz = compute_frame_size ind in
           let accu_id = get_accu_id ind in
           let is_young = sz <= max_young_wosize / double_wosize in
@@ -644,6 +666,7 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
         let dst_id = get_accu_id (ind + 1) in
         if is_read dst_id then (
           assert (is_cell dst_id);
+          use_tmp := true;
           let dst = export_cell dst_id in
           let src_id = get_accu_id ind in
           let src = export_val_desc src_id in
@@ -676,6 +699,7 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
           putm (CHECK_SIGNALS frame_sz);
 
       | Ccall (n, p) ->
+        use_tmp := true;
         if !Options.trace then puti (ITrace (CEnter prims.(p)));
         let frame_sz = compute_frame_size (ind + 1) in
         let accu_id = get_accu_id ind in
@@ -819,15 +843,15 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
     with Dead_code -> ()
   in
   let location = compute_location funs dbug fun_id in
-  let locals =
-    compute_fun_locals fun_desc.arity var_nb use_tmp arg_depths read_args
-  in
   let body =
     if !Options.trace && fun_id <> 0 then puti (ITrace (MLEnter fun_id));
     compute_fun_init puti use_env fun_desc.arity arg_depths read_args;
     Array.iteri export_instr body;
     assert (!catch_list = []);
     List.rev !instrs
+  in
+  let locals =
+    compute_fun_locals fun_desc.arity var_nb !use_tmp arg_depths read_args
   in
   compute_fun_def fun_desc use_env locals body location
 ;;

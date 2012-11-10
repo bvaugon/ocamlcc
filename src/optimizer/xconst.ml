@@ -130,8 +130,7 @@ let compute_ids arity body =
           ignore (n, p, new_glob_field);
         (* (* WARNING: compression of mutable global array access *)
            let new_accu = new_glob_field n p in
-           f new_accu stack (ind + 1);
-        *)
+           f new_accu stack (ind + 1); *)
         | Setglobal _ ->
           let new_accu = new_const 0 in
           f new_accu stack (ind + 1);
@@ -374,7 +373,7 @@ let compute_gc_read prims body states fun_infos =
   (!gc_read, !run_gc)
 ;;
 
-let compute_ptrs prims body states idvd_map gc_read fun_infos =
+let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
   let set_add set id = set := ISet.add id !set in
   let map_add map id1 id2 =
     try map := IMap.add id1 (ISet.add id2 (IMap.find id1 !map)) !map
@@ -390,6 +389,8 @@ let compute_ptrs prims body states idvd_map gc_read fun_infos =
       | None -> raise Not_found
       | Some { accu = _ ; stack = stack } -> (Stk.acc n stack)
   in
+  let ofsclsrs = ref [] in
+  let envaccs = ref [] in
   let return_ptr = ref false in
   let int_set = ref ISet.empty in
   let return_set = ref ISet.empty in
@@ -399,6 +400,7 @@ let compute_ptrs prims body states idvd_map gc_read fun_infos =
   let int_read_set = ref ISet.empty in
   let move_write_map = ref IMap.empty in
   let move_read_map = ref IMap.empty in
+  let depend_map = ref IMap.empty in
   let force_int id = set_add int_set id in
   let return id = set_add return_set id in
   let ptr_write id = set_add ptr_write_set id in
@@ -409,6 +411,7 @@ let compute_ptrs prims body states idvd_map gc_read fun_infos =
     map_add move_read_map to_id from_id;
     map_add move_write_map from_id to_id;
   in
+  let depend from_id to_id = map_add depend_map to_id from_id in
   let f ind instr =
     try match instr.bc with
       | Acc n ->
@@ -419,8 +422,14 @@ let compute_ptrs prims body states idvd_map gc_read fun_infos =
         ()
       | Assign n ->
         move (get_accu_id ind) (get_stack_id (ind + 1) n);
-      | Envacc _ ->
-        ptr_write (get_accu_id (ind + 1));
+      | Envacc n ->
+        let accu = get_accu_id (ind + 1) in
+        begin match env_desc with
+          | ENone -> assert false
+          | ENonRec _ -> envaccs := (accu, n - 2) :: !envaccs
+          | ERec (_, ofs, _) -> envaccs := (accu, n - 3 * ofs - 2) :: !envaccs
+        end;
+        ptr_write accu;
       | Pushretaddr _ ->
         ()
       | DynamicApply narg | PartialApply narg ->
@@ -452,22 +461,39 @@ let compute_ptrs prims body states idvd_map gc_read fun_infos =
       | Return _ ->
         return (get_accu_id ind);
         ptr_read (get_accu_id ind);
-      | Closure (nv, _) ->
+      | Closure (nv, ptr) ->
+        let accu = get_accu_id (ind + 1) in
+        let env_usages = (IMap.find ptr.pointed.index fun_infos).env_usages in
         if nv <> 0 then (
-          ptr_read (get_accu_id ind);
-          for i = 0 to nv - 2 do ptr_read (get_stack_id ind i) done;
+          if env_usages.(0) then depend (get_accu_id ind) accu;
+          for i = 0 to nv - 2 do
+            if env_usages.(i + 1) then depend (get_stack_id ind i) accu;
+          done;
         );
-        ptr_write (get_accu_id (ind + 1));
-      | Closurerec (nf, nv, _, _) ->
-        if nv <> 0 then (
-          ptr_read (get_accu_id ind);
-          for i = 0 to nv - 2 do ptr_read (get_stack_id ind i) done;
+        ptr_write accu;
+      | Closurerec (fun_nb, env_size, ptr, _) ->
+        let accu = get_accu_id (ind + 1) in
+        let depend_all =
+          let rec f i acc =
+            if i = fun_nb then acc
+            else f (i + 1) (get_stack_id (ind + 1) i :: acc)
+          in
+          let deps = f 0 [ accu ] in
+          fun from -> List.iter (depend from) deps
+        in
+        let env_usages = (IMap.find ptr.pointed.index fun_infos).env_usages in
+        if env_size <> 0 then (
+          if env_usages.(0) then depend_all (get_accu_id ind);
+          for i = 0 to env_size - 2 do
+            if env_usages.(i + 1) then depend_all (get_stack_id ind i);
+          done;
         );
-        ptr_write (get_accu_id (ind + 1));
-        int_read (get_accu_id (ind + 1));
-        for i = 0 to nf - 1 do ptr_write (get_stack_id (ind + 1) i) done;
+        ptr_write accu;
+        for i = 0 to fun_nb - 1 do ptr_write (get_stack_id (ind + 1) i) done;
       | Offsetclosure _ ->
-        ptr_write (get_accu_id (ind + 1));
+        let accu = get_accu_id (ind + 1) in
+        ofsclsrs :=  accu :: !ofsclsrs;
+        ptr_write accu;
       | Getglobal _ ->
         ptr_write (get_accu_id (ind + 1));
       | Getglobalfield (_, _) ->
@@ -631,38 +657,66 @@ let compute_ptrs prims body states idvd_map gc_read fun_infos =
   Array.iteri f body;
   fix_moves !move_read_map int_set;
   fix_moves !move_write_map int_set;
-  fix_moves !move_read_map ptr_read_set;
   fix_moves !move_read_map int_read_set;
+  IMap.iter (fun t fs -> ISet.iter (fun f -> map_add move_read_map t f) fs)
+    !depend_map;
+  fix_moves !move_read_map ptr_read_set;
   fix_moves !move_write_map ptr_write_set;
   fix_moves !move_write_map int_write_set;
+  let full_read_set = ISet.union !ptr_read_set !int_read_set in
   let cell_set =
-    let f id vd acc = if vd = VCell then ISet.add id acc else acc in
+    let f id vd cell_acc = match vd with
+      | VCell -> ISet.add id cell_acc
+      | _ -> cell_acc
+    in
     IMap.fold f idvd_map ISet.empty
   in
-  let (arg_set, env_set) =
-    let f id vd ((arg_acc, env_acc) as acc) =
-      match vd with
-        | VArg _ -> (ISet.add id arg_acc, env_acc)
-        | VEnv _ | VClsr _ -> (arg_acc, ISet.add id env_acc)
-        | _ -> acc
+  let arg_set =
+    let f id vd arg_acc = match vd with
+      | VArg _ -> ISet.add id arg_acc
+      | _ -> arg_acc
     in
-    IMap.fold f idvd_map (ISet.empty, ISet.empty)
+    IMap.fold f idvd_map ISet.empty
   in
-  let gc_read = ref gc_read in
-  let full_read_set = ISet.union !ptr_read_set !int_read_set in
-  let use_env = not (ISet.is_empty (ISet.inter env_set full_read_set)) in
+  let ofs_clo =
+    let f id vd ofs_acc = match vd with
+      | VClsr _ -> ofs_acc || ISet.mem id full_read_set
+      | _ -> ofs_acc
+    in
+    List.exists (fun id -> ISet.mem id full_read_set) !ofsclsrs ||
+      IMap.fold f idvd_map false
+  in
+  let env_set =
+    let f id vd evs_acc = match vd with
+      | VEnv n ->
+        if ISet.mem id full_read_set then
+          match env_desc with
+            | ENone -> assert false
+            | ENonRec _ -> ISet.add n evs_acc
+            | ERec (_, ofs, _) -> ISet.add (n - 3 * ofs) evs_acc
+        else
+          evs_acc
+      | _ -> evs_acc
+    in
+    let g acc (id, n) =
+      if ISet.mem id full_read_set then ISet.add n acc else acc
+    in
+    IMap.fold f idvd_map (List.fold_left g ISet.empty !envaccs)
+  in
+  let use_env = ofs_clo || not (ISet.is_empty env_set) in
   let read_set = ISet.inter full_read_set cell_set in
   let read_args =
     ISet.fold
       (fun id acc ->
-         if ISet.mem id !ptr_read_set || ISet.mem id !int_read_set then
-           match IMap.find id idvd_map with
-             | VArg n -> ISet.add n acc
-             | _ -> assert false
-         else
-           acc
+        if ISet.mem id full_read_set then
+          match IMap.find id idvd_map with
+            | VArg n -> ISet.add n acc
+            | _ -> assert false
+        else
+          acc
       ) arg_set ISet.empty
   in
+  let gc_read = ref gc_read in
   if !Options.no_xconst then (
     ISet.iter (fun id -> ptr_read id; ptr_write id; int_read id; int_write id;
                  gc_read := ISet.add id !gc_read) cell_set;
@@ -679,7 +733,7 @@ let compute_ptrs prims body states idvd_map gc_read fun_infos =
     !return_ptr
   in
   (* Remark: if id is not read then id is not a pointer or not a variable. *)
-  (ptr_set, read_set, ptr_res, read_args, use_env)
+  (ptr_set, read_set, ptr_res, read_args, use_env, ofs_clo, env_set)
 ;;
 
 let extract_constants prims funs =
@@ -701,23 +755,37 @@ let extract_constants prims funs =
   in
   let infos = IMap.fold extract_infos funs [] in
   let fun_infos =
-    let f id fun_desc acc =
-      IMap.add id {
-        ptr_args = Array.make fun_desc.arity false;
-        ptr_res = false;
-        run_gc = false;
-        use_env = false;
-      } acc
+    let f fun_id fun_desc (fi_acc, shared_envs) =
+      let (env_usages, new_shared_envs) =
+        match fun_desc.env_desc with
+          | ENone -> ([||], shared_envs)
+          | ENonRec env_size -> (Array.make env_size false, shared_envs)
+          | ERec (env_size, _, base_fun_id) ->
+            try (IMap.find base_fun_id shared_envs, shared_envs)
+            with Not_found ->
+              let env_usages = Array.make env_size false in
+              (env_usages, IMap.add base_fun_id env_usages shared_envs)
+      in
+      let fun_info = {
+        ptr_args   = Array.make fun_desc.arity false;
+        ptr_res    = false;
+        run_gc     = false;
+        use_env    = false;
+        ofs_clo    = false;
+        env_usages = env_usages;
+      } in
+      (IMap.add fun_id fun_info fi_acc, new_shared_envs)
     in
-    IMap.fold f funs IMap.empty
+    fst (IMap.fold f funs (IMap.empty, IMap.empty))
   in
   let update_fun_infos (sets_map, flag)
       (id, fun_desc, states, idvd_map, arg_ids) =
     let (gc_read, r_gc) =
       compute_gc_read prims fun_desc.body states fun_infos
     in
-    let (ptr_set, read_set, p_res, read_args, u_env) =
-      compute_ptrs prims fun_desc.body states idvd_map gc_read fun_infos
+    let (ptr_set, read_set, p_res, read_args, u_env, ofs_clo, env_set) =
+      compute_ptrs prims fun_desc.body fun_desc.env_desc states idvd_map
+        gc_read fun_infos
     in
     let fun_info = IMap.find id fun_infos in
     let new_flag = ref flag in
@@ -727,6 +795,17 @@ let extract_constants prims funs =
         new_flag := true;
       );
     done;
+    ISet.iter (fun i ->
+      assert (i >= 0 && i < Array.length fun_info.env_usages);
+      if not fun_info.env_usages.(i) then (
+        fun_info.env_usages.(i) <- true;
+        new_flag := true;
+      );
+    ) env_set;
+    if ofs_clo && not fun_info.ofs_clo then (
+      fun_info.ofs_clo <- true;
+      new_flag := true;
+    );
     if p_res && not fun_info.ptr_res then (
       fun_info.ptr_res <- true;
       new_flag := true;

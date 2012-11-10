@@ -22,7 +22,22 @@ type index = (section * int * int) list
 
 (***)
 
-type instr = {
+type env_desc =
+  | ENone                   (* The main function haven't closure *)
+  | ENonRec of int          (* (env_size)                        *)
+  | ERec of int * int * int (* (env_size, env_ofs, base_fun_id)  *)
+
+(***)
+
+type fun_desc = {
+  fun_id : int;
+  arity : int;
+  env_desc : env_desc;
+  body : instr array;
+  is_special : bool; (* contains PUSHTRAP and APPTERM *)
+}
+
+and instr = {
   addr : int;
   mutable index : int;
   mutable bc : bc;
@@ -32,13 +47,6 @@ type instr = {
 and ptr = {
   ofs : int;
   mutable pointed : instr;
-}
-
-and fun_desc = {
-  fun_id : int;
-  arity : int;
-  body : instr array;
-  is_special : bool; (* contains PUSHTRAP and APPTERM *)
 }
 
 and bc =
@@ -165,15 +173,15 @@ type location = {
 }
 
 type debug_event = {
-  mutable ev_pos: int;   (* Position in bytecode *)
-  ev_module: string;     (* Name of defining module *)
-  ev_loc: location;      (* Location in source file *)
-  ev_kind: fake_1_t;     (* Before/after event *)
-  ev_info: fake_2_t;     (* Extra information *)
-  ev_typenv: fake_3_t;   (* Typing environment *)
-  ev_typsubst: fake_4_t; (* Substitution over types *)
-  ev_compenv: fake_5_t;  (* Compilation environment *)
-  ev_stacksize: int;     (* Size of stack frame *)
+  mutable ev_pos: int;   (* Position in bytecode           *)
+  ev_module: string;     (* Name of defining module        *)
+  ev_loc: location;      (* Location in source file        *)
+  ev_kind: fake_1_t;     (* Before/after event             *)
+  ev_info: fake_2_t;     (* Extra information              *)
+  ev_typenv: fake_3_t;   (* Typing environment             *)
+  ev_typsubst: fake_4_t; (* Substitution over types        *)
+  ev_compenv: fake_5_t;  (* Compilation environment        *)
+  ev_stacksize: int;     (* Size of stack frame            *)
   ev_repr: fake_6_t      (* Position of the representative *)
 }
 
@@ -182,21 +190,23 @@ type dbug = location Tools.IMap.t
 type alloc = Integer | Unknown | Allocated
 
 type val_desc =
-  | VConst of int           (* Known constant *)
-  | VGlob of int            (* Global variable *)
-  | VGlobField of int * int (* Global variable field *)
-  | VAtom of int            (* Atom *)
-  | VClsr of int            (* Current closure with an offset *)
-  | VEnv of int             (* Field of the environment *)
-  | VArg of int             (* Function argument *)
-  | VPtr of ptr             (* Code pointer *)
-  | VCell                   (* Cells *)
+  | VConst of int           (* Known constant                         *)
+  | VGlob of int            (* Global variable                        *)
+  | VGlobField of int * int (* Global variable field                  *)
+  | VAtom of int            (* Atom                                   *)
+  | VClsr of int            (* Current (infix) closure with an offset *)
+  | VEnv of int             (* Field of the environment               *)
+  | VArg of int             (* Function argument                      *)
+  | VPtr of ptr             (* Code pointer                           *)
+  | VCell                   (* Cells                                  *)
 
 type fun_info = {
-  ptr_args : bool array;  (* Function arguments may be pointers    *)
-  mutable ptr_res : bool; (* Function result may be a pointer      *)
-  mutable run_gc  : bool; (* Function call may run the GC          *)
-  mutable use_env : bool; (* Function body may use its environment *)
+  ptr_args : bool array;   (* Function arguments may be pointers         *)
+  mutable ptr_res : bool;  (* Function result may be a pointer           *)
+  mutable run_gc  : bool;  (* Function call may run the GC               *)
+  mutable use_env : bool;  (* Function body may use its environment      *)
+  mutable ofs_clo : bool;  (* Usage of the closure (rec call)            *)
+  env_usages : bool array; (* Usage of function environment cells        *)
 }
 
 type ids_info = {

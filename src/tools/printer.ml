@@ -73,10 +73,10 @@ let rec string_of_bc bc =
     | Restart               -> sprintf "RESTART"
     | Grab n                -> sprintf "GRAB %d" n
     | Closure (n,ptr)       -> sprintf "CLOSURE %d %d" n ptr.pointed.index
-    | Closurerec (f,v,{ofs=_;pointed={addr=_;index=i;bc=_;is_pointed=_}},t) ->
+    | Closurerec (f, v, o, t) ->
       let b = Buffer.create 16 in
-      bprintf b "CLOSUREREC %d %d %d [" f v i;
-      Array.iter(fun ptr -> bprintf b " %d " ptr.pointed.index) t;
+      bprintf b "CLOSUREREC %d %d %d [" f v o.pointed.index;
+      Array.iter (fun ptr -> bprintf b " %d " ptr.pointed.index) t;
       bprintf b "]";
       Buffer.contents b
     | Offsetclosure (-2)     -> sprintf "OFFSETCLOSUREM2"
@@ -255,10 +255,8 @@ let print_dbug oc dbug =
 
 let print_comment indent newline funs dbug oc fun_id =
   try
-    let { fun_id = _; arity = _; body = body; is_special = _ } =
-      IMap.find fun_id funs
-    in
-    let loc = IMap.find body.(0).addr dbug in
+    let fun_desc = IMap.find fun_id funs in
+    let loc = IMap.find fun_desc.body.(0).addr dbug in
     Printf.fprintf oc "%s// %a" indent print_location loc;
     if newline then Printf.fprintf oc "\n";
   with Not_found -> ()

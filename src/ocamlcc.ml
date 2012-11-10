@@ -159,7 +159,6 @@ let b2c bfile cfile stop =
   Propag.compute_applies data funs;
   (* WARNING: remap_stack change bytecode in place *)
   Remapstk.remap_stack funs;
-  Cleanclsrs.clean_closures funs;
   let (ids_infos, fun_infos) = Xconst.extract_constants prims funs in
   let tc_set = Body.compute_tc_set funs fun_infos in
   let (funs, ids_infos, fun_infos, tc_set) =
@@ -169,6 +168,7 @@ let b2c bfile cfile stop =
     Mcgen.gen_macroc prims data dbug funs fun_infos ids_infos tc_set
   in
   Codegen.gen_code cfile macroc;
+  (*Printer.print_ids_infos stdout ids_infos;*)
   if !Options.stat then Stat.analyse stdout funs ids_infos fun_infos tc_set;
   if stop then exit 0;
 ;;

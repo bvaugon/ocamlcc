@@ -31,12 +31,11 @@ let functions oc funs fun_infos tc_set =
   let main = (IMap.find 0 funs).body in
   let others = IMap.remove 0 funs in
   let main_size = Array.length main in
-  let foldf _ ({ fun_id = _ ; arity = arity ; body = body ; is_special = _ }
-                  as fun_desc) (nb, tot, mini, maxi, arities, inln_nb) =
-    let sz = Array.length body in
+  let foldf _ fun_desc (nb, tot, mini, maxi, arities, inln_nb) =
+    let sz = Array.length fun_desc.body in
     let new_arities =
-      try IMap.add arity (IMap.find arity arities + 1) arities
-      with Not_found -> IMap.add arity 1 arities
+      try IMap.add fun_desc.arity (IMap.find fun_desc.arity arities + 1) arities
+      with Not_found -> IMap.add fun_desc.arity 1 arities
     in
     let new_inln_nb =
       if Body.test_inlinable funs fun_infos fun_desc then inln_nb + 1

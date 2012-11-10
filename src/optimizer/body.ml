@@ -202,12 +202,10 @@ let make_index fun_ids =
 
 let fix_envaccs funs =
   let offset_envaccs ofs fun_id =
-    let { fun_id = _ ; arity = _ ; body = body ; is_special = _ } =
-      IMap.find fun_id funs
-    in
-    for i = 0 to Array.length body - 1 do
-      match body.(i).bc with
-        | Envacc n -> body.(i).bc <- Envacc (n + ofs)
+    let fun_desc = IMap.find fun_id funs in
+    for i = 0 to Array.length fun_desc.body - 1 do
+      match fun_desc.body.(i).bc with
+        | Envacc n -> fun_desc.body.(i).bc <- Envacc (n + ofs)
         | _ -> ()
     done;
   in
@@ -282,7 +280,7 @@ let set_special_appterms body =
   Array.iteri f body
 ;;
 
-let make_funs index code =
+let make_funs code index env_descs =
   let make_block fun_id inds =
     let (old_body, arity) =
       match List.map (fun ind -> code.(ind)) inds with
@@ -303,10 +301,12 @@ let make_funs index code =
     Array.iter (update_pointed map) new_body;
     update_is_pointed new_body;
     let is_special = is_special_tail_call new_body in
+    assert (fun_id = 0 || IMap.mem fun_id env_descs);
     if is_special then set_special_appterms new_body;
     {
       arity = arity;
       fun_id = fun_id;
+      env_desc = IMap.find fun_id env_descs;
       body = new_body;
       is_special = is_special;
     }
@@ -319,13 +319,38 @@ let make_funs index code =
   funs
 ;;
 
+(***)
+
+let make_env_descs code =
+  let foldf acc instr =
+    match instr.bc with
+      | Closure (env_size, ptr) ->
+        IMap.add ptr.pointed.index (ENonRec env_size) acc
+      | Closurerec (fun_nb, env_size, ptr, ptrs) ->
+        let mk_erec pos =
+          ERec (env_size, fun_nb - pos - 1, ptr.pointed.index)
+        in
+        let rec f i acc =
+          if i = fun_nb - 1 then acc
+          else f (i + 1) (IMap.add ptrs.(i).pointed.index (mk_erec (i + 1)) acc)
+        in
+        f 0 (IMap.add ptr.pointed.index (mk_erec 0) acc)
+      | _ -> acc
+  in
+  Array.fold_left foldf (IMap.add 0 ENone IMap.empty) code
+;;
+
+(***)
+
 let create code =
   Options.verb_start "+ Decompiling functions.";
   let fun_ids = mark_connex code in
   Options.message ".";
   let index = make_index fun_ids in
   Options.message ".";
-  let funs = make_funs index code in
+  let env_descs = make_env_descs code in
+  Options.message ".";
+  let funs = make_funs code index env_descs in
   Options.verb_stop ();
   funs
 ;;
