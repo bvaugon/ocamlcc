@@ -35,4 +35,6 @@ tests/termtrap
 tests/ocamlc
 tests/flocon
 tests/wscope
-trash/
+ocamlclean/*
+!ocamlclean/*.tar.bz2
+plus/

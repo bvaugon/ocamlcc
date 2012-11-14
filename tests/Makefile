@@ -15,7 +15,7 @@ OCAMLC := $(shell which ocamlc)
 LIBDIR := $(shell $(OCAMLC) -where)
 OCAMLCC = ../bin/ocamlcc
 CC = gcc
-CC_INCLUDES = -I ../etc -I ../include -I ../include/ocamlcc-byterun
+CC_INCLUDES = -I ../etc -I ../runtime -I ../runtime/ocamlcc-byterun
 CC_FLAGS = -O3 -Wall -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E
 
 ###
@@ -84,7 +84,6 @@ check-project:
 
 %.byte: %.ml
 	$(OCAMLC) -g $< -o $@
-	which ocamlclean && ocamlclean $@ -o $@ || /bin/true
 
 %.native: %.ml
 	ocamlopt $< -o $@
@@ -128,7 +127,6 @@ ocamlc-nxc-$(ARCH).c: $(OCAMLC) check-project
 
 flocon.byte: flocon.ml
 	$(OCAMLC) -g unix.cma graphics.cma $< -o $@
-	which ocamlclean && ocamlclean $@ -o $@ || /bin/true
 
 flocon.native: flocon.ml
 	ocamlopt -verbose unix.cmxa graphics.cmxa $< -o $@

@@ -15,7 +15,10 @@ open Tools;;
 
 let flag_size = 60;;
 
-let percentage x y = float_of_int (x * 100) /. float_of_int y;;
+let percentage x y =
+  if y = 0 then 100. else
+    float_of_int (x * 100) /. float_of_int y
+;;
 
 let print_flag oc title =
   let len = String.length title in

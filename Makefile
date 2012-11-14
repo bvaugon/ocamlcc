@@ -14,6 +14,10 @@ include etc/Makefile.conf
 
 all: config
 	@make --no-print-directory -C src
+	@if [ $(INSTALL_OCAMLCLEAN) = true ]; then \
+            cd $(OCAMLCLEAN_DIRECTORY)/;           \
+            make --no-print-directory;             \
+        fi
 
 config:
 	@if [ etc/Makefile.conf -ot VERSION -o \
@@ -29,13 +33,21 @@ install: all
 	mkdir -p "$(INCLUDEDIR)"
 	cp bin/ocamlcc "$(BINDIR)/ocamlcc"
 	gzip -c man/ocamlcc.1 > "$(MAN1DIR)/ocamlcc.1.gz"
-	cp -R include/* "$(INCLUDEDIR)/"
+	cp -R runtime/* "$(INCLUDEDIR)/"
 	cp etc/config.h "$(INCLUDEDIR)/ocamlcc-byterun/config.h"
+	@if [ $(INSTALL_OCAMLCLEAN) = true ]; then \
+            cd $(OCAMLCLEAN_DIRECTORY)/;           \
+            make --no-print-directory install;     \
+        fi
 
 uninstall:
 	rm -f "$(BINDIR)/ocamlcc"
 	rm -f "$(MAN1DIR)/ocamlcc.1.gz"
 	rm -Rf "$(INCLUDEDIR)"
+	@if [ $(INSTALL_OCAMLCLEAN) = true ]; then \
+            cd $(OCAMLCLEAN_DIRECTORY)/;           \
+            make --no-print-directory uninstall;   \
+        fi
 
 etc/Makefile.conf:
 	@echo "You must run ./configure before" 1>&2
@@ -50,5 +62,9 @@ dist: clean
 clean:
 	@make --no-print-directory -C src clean
 	@make --no-print-directory -C tests clean
+	@if [ $(INSTALL_OCAMLCLEAN) = true ]; then \
+            cd $(OCAMLCLEAN_DIRECTORY)/;           \
+            make --no-print-directory clean;       \
+        fi
 
 .PHONY: all config install uninstall tests dist clean

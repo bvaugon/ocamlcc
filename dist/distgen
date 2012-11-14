@@ -18,18 +18,21 @@ DEST=ocamlcc-"$VERSION"
 
 rm -Rf "$DEST"
 
-for d in "$DEST" "$DEST/bin" "$DEST/dist" "$DEST/etc"; do
+for d in "$DEST" "$DEST/bin" "$DEST/dist" "$DEST/etc" "$DEST/ocamlclean"; do
     mkdir "$d"
 done
 
 for d in \
-    configure include INSTALL LICENSE-en LICENSE-fr Makefile man \
-    RUNTIME_VERSION src tests VERSION
+    configure runtime INSTALL LICENSE-en LICENSE-fr Makefile man \
+    src tests VERSION
 do
     cp -R ../"$d" "$DEST/"
 done
 
 cp ./distgen "$DEST/dist/"
+
+cp $(ls ../ocamlclean/ocamlclean-*.tar.bz2 -1 | sort -n | tail -n 1) \
+    "$DEST/ocamlclean/"
 
 tar jcf "$DEST.tar.bz2" "$DEST"
 

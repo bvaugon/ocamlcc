@@ -24,7 +24,7 @@ let spec =
     ("-c", Arg.Set Options.only_generate_C,
      " Stop after generation of C code");
     ("-k", Arg.Set Options.keep_C_file,
-     " Keep C intermediate file");
+     " Keep intermediate bytecode and C files");
     ("-o", Arg.String (fun o -> Options.output_file := Some o),
      "<file> Output goes to <file>");
     ("-cc", Arg.Set_string Options.ccomp,
@@ -137,40 +137,71 @@ let cfile =
 
 (***)
 
-let cc_run args =
-  let compilation =
+let remove_tmp_file file =
+  if not (!Options.keep_C_file) then (
+    Options.message "+ Removing %S..." file;
+    begin try Sys.remove file with Sys_error _ -> () end;
+    Options.message " done\n";
+  );
+;;
+
+let run_command command =
+  Options.verb_start "+ Running '%s'..." command;
+  let ret_code = Sys.command command in
+  Options.verb_stop ();
+  if ret_code <> 0 then
+    Printf.eprintf "Error: command '%s' failed.\n%!" command;
+  ret_code
+;;
+
+let run_cc args =
+  let command =
     Printf.sprintf
       "%s %s -I %s -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E %s"
       !Options.ccomp args Config.include_dir !Options.ccopts
   in
-  Options.verb_start "+ Running %S..." compilation;
-  let ret_code = Sys.command compilation in
-  Options.verb_stop ();
-  ret_code
+  run_command command
+;;
+
+let run_ocamlclean bfile =
+  let (tmp_bfile, oc) = Filename.open_temp_file "tmp-ocamlcc-" ".byte" in
+  close_out oc;
+  let command =
+    Printf.sprintf "%S %S -o %S" Config.ocamlclean bfile tmp_bfile
+  in
+  let ret_code = run_command command in
+  if ret_code <> 0 then ( remove_tmp_file tmp_bfile; exit ret_code );
+  tmp_bfile
 ;;
 
 (***)
-Printexc.record_backtrace true;;
+
 let b2c bfile cfile stop =
-  let (prims, data, code, dbug) = Loader.load bfile in
-  let funs = Body.create code in
+  let tmp_bfile = run_ocamlclean bfile in
+  try
+    let (prims, data, code, dbug) = Loader.load tmp_bfile in
+    let funs = Body.create code in
   (* WARNING: compute_applies must be called before remap_stack *)
   (* WARNING: compute_applies change bytecode in place *)
-  Propag.compute_applies data funs;
+    Propag.compute_applies data funs;
   (* WARNING: remap_stack change bytecode in place *)
-  Remapstk.remap_stack funs;
-  let (ids_infos, fun_infos) = Xconst.extract_constants prims funs in
-  let tc_set = Body.compute_tc_set funs fun_infos in
-  let (funs, ids_infos, fun_infos, tc_set) =
-    Cleanfuns.clean_functions funs ids_infos fun_infos tc_set
-  in
-  let macroc =
-    Mcgen.gen_macroc prims data dbug funs fun_infos ids_infos tc_set
-  in
-  Codegen.gen_code cfile macroc;
+    Remapstk.remap_stack funs;
+    let (ids_infos, fun_infos) = Xconst.extract_constants prims funs in
+    let tc_set = Body.compute_tc_set funs fun_infos in
+    let (funs, ids_infos, fun_infos, tc_set) =
+      Cleanfuns.clean_functions funs ids_infos fun_infos tc_set
+    in
+    let macroc =
+      Mcgen.gen_macroc prims data dbug funs fun_infos ids_infos tc_set
+    in
+    Codegen.gen_code cfile macroc;
   (*Printer.print_ids_infos stdout ids_infos;*)
-  if !Options.stat then Stat.analyse stdout funs ids_infos fun_infos tc_set;
-  if stop then exit 0;
+    if !Options.stat then Stat.analyse stdout funs ids_infos fun_infos tc_set;
+    remove_tmp_file tmp_bfile;
+    if stop then exit 0;
+  with exn ->
+    remove_tmp_file tmp_bfile;
+    raise exn
 ;;
 
 try
@@ -181,12 +212,8 @@ try
   let ccargs = match !Options.output_file with
     | None -> cfile
     | Some fname -> Printf.sprintf "%s -o %s" cfile fname in
-  let ret_code = cc_run ccargs in
-  if not (!Options.keep_C_file) then (
-    Options.message "+ Removing %s..." cfile;
-    begin try Sys.remove cfile with Sys_error _ -> () end;
-    Options.message " done\n";
-  );
+  let ret_code = run_cc ccargs in
+  remove_tmp_file cfile;
   exit ret_code
 with Failure msg | Sys_error msg ->
   Options.message " fail\n";

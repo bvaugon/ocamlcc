@@ -28,6 +28,17 @@ function check_command () {
     fi
 }
 
+function check_absolute_path () {
+    case "$1" in
+        /*);;
+        *) error "Error: \"$1\" is not an absolute path";;
+    esac
+}
+
+function remove_trailing_slash () {
+    echo "$1" | sed 'sX^\(.*[^/]\)/*$X\1X'
+}
+
 ###
 
 mkdir -p bin etc dist
@@ -37,7 +48,10 @@ mkdir -p bin etc dist
 check_command "ocamlbuild"
 check_command "ocamlc"
 check_command "mkdir"
+check_command "echo"
+check_command "grep"
 check_command "pwd"
+check_command "sed"
 check_command "cp"
 check_command "rm"
 check_command "gcc"
@@ -49,8 +63,8 @@ OCAMLLIB=$(ocamlc -where)
 GCC=$(which gcc)
 ARCH=$(test -x /bin/uname && /bin/uname -m || echo none)
 VERSION=$(cat VERSION)
-RUNTIME_VERSION=$(cat RUNTIME_VERSION)
-PWD=$(pwd)
+RUNTIME_VERSION=$(cat runtime/VERSION)
+SAVED_PWD=$(pwd)
 
 ###
 
@@ -60,17 +74,25 @@ MANDIR=/usr/local/man
 
 while [ $# -ne 0 ]; do
     case "$1" in
-	-bindir)     BINDIR="$2"; shift ;;
-        -includedir) INCLUDEDIR="$2"; shift ;;
-	-mandir)     MANDIR="$2"; shift ;;
+	-bindir)
+            check_absolute_path "$2"
+            BINDIR="$(remove_trailing_slash $2)" ;;
+        -includedir)
+            check_absolute_path "$2"
+            INCLUDEDIR="$(remove_trailing_slash $2)" ;;
+	-mandir)
+            check_absolute_path "$2"
+            MANDIR="$(remove_trailing_slash $2)" ;;
 	-prefix)
+            check_absolute_path "$2"
+            PREFIX="$(remove_trailing_slash $2)"
 	    BINDIR="$2"/bin
             INCLUDEDIR="$2"/include
-	    MANDIR="$2"/man
-	    shift;;
+	    MANDIR="$2"/man ;;
 	*)
-	usage "Don't know what to do with \"$1\""
+	usage "Don't know what to do with \"$1\"" ;;
     esac
+    shift
     shift
 done
 
@@ -78,7 +100,58 @@ CCOMP="$GCC"
 
 ###
 
+OCAMLCLEAN_LOCAL_VERSION=$(
+    echo ocamlclean/ocamlclean-*.tar.bz2 | \
+        sed 'sX.*ocamlclean/ocamlclean-\(.*\)\.tar\.bz2$X\1X'
+)
+INSTALLED_OCAMLCLEAN="$(which ocamlclean 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    INSTALLED_OCAMLCLEAN_VERSION=$("$INSTALLED_OCAMLCLEAN" -version)
+    if [ $INSTALLED_OCAMLCLEAN_VERSION '<' $OCAMLCLEAN_LOCAL_VERSION ]; then
+        echo -n "Warning: an old OCamlClean version is already installed: "
+        echo  "$INSTALLED_OCAMLCLEAN_VERSION"
+        echo  -n "  => configure new embedded OCamlClean version: "
+        echo "$OCAMLCLEAN_LOCAL_VERSION"
+        INSTALL_OCAMLCLEAN=true
+        if [ "$INSTALLED_OCAMLCLEAN" != "$BINDIR/ocamlclean" ]; then
+            echo -n "Warning: OCamlClean was installed in: "
+            echo "$INSTALLED_OCAMLCLEAN"
+            echo -n "  The new version will be installed in: "
+            echo "$BINDIR/ocamlclean"
+        fi
+    else
+        INSTALL_OCAMLCLEAN=false
+        OCAMLCLEAN="$INSTALLED_OCAMLCLEAN"
+        OCAMLCLEAN_VERSION="$INSTALLED_OCAMLCLEAN_VERSION"
+        OCAMLCLEAN_DIRECTORY="-none-"
+        OCAMLCLEAN_ARCHIVE="-none-"
+    fi
+else
+    echo -n "Warning: OCamlClean not installed => configure OCamlClean "
+    echo "$OCAMLCLEAN_LOCAL_VERSION"
+    INSTALL_OCAMLCLEAN=true
+fi
+
+if [ $INSTALL_OCAMLCLEAN = true ]; then
+    OCAMLCLEAN="$BINDIR/ocamlclean"
+    OCAMLCLEAN_VERSION="$OCAMLCLEAN_LOCAL_VERSION"
+    OCAMLCLEAN_DIRECTORY="$SAVED_PWD/ocamlclean/ocamlclean-$OCAMLCLEAN_VERSION"
+    OCAMLCLEAN_ARCHIVE="$OCAMLCLEAN_DIRECTORY.tar.bz2"
+    cd "ocamlclean"
+    tar jxf "$OCAMLCLEAN_ARCHIVE"
+    cd "$OCAMLCLEAN_DIRECTORY"
+    ./configure -bindir "$BINDIR" -mandir "$MANDIR"
+    cd "$SAVED_PWD"
+fi
+
+###
+
 echo "\
+INSTALL_OCAMLCLEAN = $INSTALL_OCAMLCLEAN
+OCAMLCLEAN = $OCAMLCLEAN
+OCAMLCLEAN_VERSION = $OCAMLCLEAN_VERSION
+OCAMLCLEAN_DIRECTORY = $OCAMLCLEAN_DIRECTORY
+OCAMLCLEAN_ARCHIVE = $OCAMLCLEAN_ARCHIVE
 VERSION = $VERSION
 RUNTIME_VERSION = $RUNTIME_VERSION
 
@@ -98,6 +171,7 @@ let runtime_version = \"$RUNTIME_VERSION\";;
 let include_dir = \"$INCLUDEDIR/ocamlcc\";;
 let default_arch = \"gen\";;
 let ccomp = \"$CCOMP\";;
+let ocamlclean = \"$OCAMLCLEAN\";;
 " > etc/config.ml
 
 ###

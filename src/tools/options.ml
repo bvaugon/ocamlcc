@@ -60,7 +60,7 @@ let verb_start fmt =
   let () = btime () in
   message fmt
 and verb_stop () =
-  ofsmsg 40;
+  ofsmsg 48;
   message "%s\n" (etime());
 ;;
 
