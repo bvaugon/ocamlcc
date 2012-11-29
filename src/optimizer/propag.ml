@@ -362,6 +362,14 @@ let compute_applies data funs =
     List.iter (fun (index, env) -> f env (IMap.find index funs).body)
       indenvs;
   in
-  f EUnknown (IMap.find 0 funs).body;
+  let rec g glob_def_nb =
+    f EUnknown (IMap.find 0 funs).body;
+    let new_glob_def_nb =
+      Array.fold_left (fun acc g -> if g <> GUnknown then acc + 1 else acc)
+        0 glob_infos
+    in
+    if new_glob_def_nb <> glob_def_nb then g new_glob_def_nb
+  in
+  g (-1);
   Options.verb_stop ();
 ;;
