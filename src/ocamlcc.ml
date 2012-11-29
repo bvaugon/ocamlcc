@@ -29,8 +29,8 @@ let spec =
      "<file> Output goes to <file>");
     ("-cc", Arg.Set_string Options.ccomp,
      Printf.sprintf "<x> Define C compiler (default: %s)" Config.ccomp);
-    ("-ccopt", Arg.String Options.add_ccopts,
-     Printf.sprintf "<x> Extra argument for the C compiler (default: '%s')"
+    ("-ccopts", Arg.String Options.add_ccopts,
+     Printf.sprintf "<x> Extra arguments for the C compiler (default: '%s')"
        ccopts);
     ("-arch", Arg.String (fun a -> !set_arch a),
      Options.arch_option_doc);

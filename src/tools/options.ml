@@ -113,6 +113,13 @@ let arch_option_doc =
   Buffer.contents buf
 ;;
 
-let add_ccopts sopts =
-  ccopts := Printf.sprintf "%s %s" !ccopts sopts
+let rec add_ccopts sopts =
+  try
+    let ind = String.index sopts ',' in
+    let sopt = String.sub sopts 0 ind in
+    let rest = String.sub sopts (ind + 1) (String.length sopts - ind - 1) in
+    ccopts := Printf.sprintf "%s %S" !ccopts sopt;
+    add_ccopts rest
+  with Not_found ->
+    ccopts := Printf.sprintf "%s %S" !ccopts sopts;
 ;;
