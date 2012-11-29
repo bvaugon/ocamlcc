@@ -16,7 +16,7 @@ LIBDIR := $(shell $(OCAMLC) -where)
 OCAMLCC = ../bin/ocamlcc
 CC = gcc
 CC_INCLUDES = -I ../etc -I ../runtime -I ../runtime/ocamlcc-byterun
-CC_FLAGS = -O3 -Wall -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E
+CC_FLAGS = -D_FILE_OFFSET_BITS=64 -O3 -Wall -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E
 
 ###
 
@@ -148,7 +148,7 @@ flocon-nxc-$(ARCH).c: flocon.byte check-project
 
 floco%: floco%.c check-project
 	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -L $(LIBDIR) \
-	  $(LIBDIR)/unix.a $(LIBDIR)/graphics.a -lgraphics -lX11 -lunix
+	  -lgraphics -lX11 -lunix
 
 ###
 

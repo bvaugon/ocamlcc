@@ -157,7 +157,7 @@ let run_command command =
 let run_cc args =
   let command =
     Printf.sprintf
-      "%s %s -I %s -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E %s"
+      "%s -D_FILE_OFFSET_BITS=64 %s -I %s -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E %s"
       !Options.ccomp args Config.include_dir !Options.ccopts
   in
   run_command command
