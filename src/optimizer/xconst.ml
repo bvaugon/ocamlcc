@@ -379,6 +379,11 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
     try map := IMap.add id1 (ISet.add id2 (IMap.find id1 !map)) !map
     with Not_found -> map := IMap.add id1 (ISet.singleton id2) !map
   in
+  let map_union map1 map2 =
+    let res = ref map1 in
+    IMap.iter (fun id -> ISet.iter (fun id' -> map_add res id id')) map2;
+    !res
+  in
   let get_accu_id ind =
     match states.(ind) with
       | None -> raise Not_found
@@ -655,8 +660,7 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
       Stk.iter (fun id -> ptr_write id) state.stack;
   end;
   Array.iteri f body;
-  fix_moves !move_read_map int_set;
-  fix_moves !move_write_map int_set;
+  fix_moves (map_union !move_read_map !move_write_map) int_set;
   fix_moves !move_read_map int_read_set;
   IMap.iter (fun t fs -> ISet.iter (fun f -> map_add move_read_map t f) fs)
     !depend_map;

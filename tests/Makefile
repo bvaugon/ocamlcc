@@ -16,7 +16,7 @@ LIBDIR := $(shell $(OCAMLC) -where)
 OCAMLCC = ../bin/ocamlcc
 CC = gcc
 CC_INCLUDES = -I ../etc -I ../runtime -I ../runtime/ocamlcc-byterun
-CC_FLAGS = -D_FILE_OFFSET_BITS=64 -O3 -Wall -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E
+CC_FLAGS = -D_FILE_OFFSET_BITS=64 -Wall -lm -ldl -lcurses
 
 ###
 
@@ -28,11 +28,15 @@ NONECS = $(BYTES:.byte=-none.c)
 NXCCS = $(BYTES:.byte=-nxc.c)
 ARCHCS = $(BYTES:.byte=-$(ARCH).c)
 NXCARCHCS = $(BYTES:.byte=-nxc-$(ARCH).c)
+TCCCS = $(BYTES:.byte=-tcc.c)
+CLANGCS = $(BYTES:.byte=-clang.c)
 S = $(CS:.c=)
-NONES=$(NONECS:.c=)
-NXCS=$(NXCCS:.c=)
-ARCHS=$(ARCHCS:.c=)
-NXCARCHS=$(NXCARCHCS:.c=)
+NONES = $(NONECS:.c=)
+NXCS = $(NXCCS:.c=)
+ARCHS = $(ARCHCS:.c=)
+NXCARCHS = $(NXCARCHCS:.c=)
+TCCS = $(TCCCS:.c=)
+CLANGS = $(CLANGCS:.c=)
 
 ###
 
@@ -62,9 +66,11 @@ endif
 
 ifeq ($(MANAGED_ARCH), true)
 TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS) \
-	 $(ARCHCS) $(ARCHS) $(NXCARCHCS) $(NXCARCHS)
+	 $(ARCHCS) $(ARCHS) $(NXCARCHCS) $(NXCARCHS) $(TCCCS) $(TCCS) \
+	 $(CLANGCS) $(CLANGS)
 else
-TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS)
+TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS) \
+	$(TCCCS) $(TCCS) $(CLANGCS) $(CLANGS)
 endif
 
 ###
@@ -82,33 +88,10 @@ check-project:
 
 ###
 
-%.byte: %.ml
-	$(OCAMLC) -g $< -o $@
-
-%.native: %.ml
-	ocamlopt $< -o $@
-
-%.c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch GEN $<
-
-%-nxc.c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch GEN -no-xconst $< -o $@
-
-%-none.c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch NONE $< -o $@
-
-%-$(ARCH).c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
-
-%-nxc-$(ARCH).c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
-
-%: %.c check-project
-	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS)
-
-###
-
 ocamlc.c: $(OCAMLC) check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN $< -o $@
+
+ocamlc-clang.c: $(OCAMLC) check-project
 	$(OCAMLCC) -c -verbose -stat -arch GEN $< -o $@
 
 ocamlc-nxc.c: $(OCAMLC) check-project
@@ -152,10 +135,49 @@ floco%: floco%.c check-project
 
 ###
 
+%.byte: %.ml
+	$(OCAMLC) -g $< -o $@
+
+%.native: %.ml
+	ocamlopt $< -o $@
+
+%.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN $<
+
+%-tcc.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN $<
+
+%-nxc.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN -no-xconst $< -o $@
+
+%-none.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch NONE $< -o $@
+
+%-$(ARCH).c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
+
+%-nxc-$(ARCH).c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
+
+%: %.c check-project
+	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O2
+
+%-$(ARCH): %-$(ARCH).c check-project
+	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -fno-omit-frame-pointer -O3
+
+%-tcc: %.c check-project
+	tcc $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O3
+
+%-clang: %-clang.c check-project
+	clang $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O3
+
+###
+
 clean:
 	@rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) ocamlc.c ocamlc ocamlc-nxc.c \
 	  ocamlc-nxc ocamlc-$(ARCH).c ocamlc-$(ARCH) ocamlc-nxc-$(ARCH).c \
-	  ocamlc-nxc-$(ARCH) ocamlc-none.c ocamlc-none a.out
+	  ocamlc-nxc-$(ARCH) ocamlc-none.c ocamlc-none ocamlc-tcc.c ocamlc-tcc \
+	  ocamlc-clang.c ocamlc-clang a.out
 
 ###
 

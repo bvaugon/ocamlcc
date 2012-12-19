@@ -20,6 +20,8 @@ struct longjmp_buffer *ocamlcc_exception_stack;
 long ocamlcc_exception_stack_size = OCAMLCC_EXCEPTION_STACK_INIT_SIZE;
 long ocamlcc_exception_stack_offset = 0;
 
+typedef struct caml__roots_block *caml__roots_block_struct_ptr;
+
 void ocamlcc_exception_init_fun(void) {
   ocamlcc_exception_stack = (struct longjmp_buffer *)
     malloc(OCAMLCC_EXCEPTION_STACK_INIT_SIZE * sizeof(struct longjmp_buffer));
@@ -67,8 +69,8 @@ struct longjmp_buffer *ocamlcc_exception_poptrap_fun(void) {
 }
 
 #define ocamlcc_pushtrap(restore_exn, lab, ukid) ;                      \
-  long ocamlcc_save_sp_offset_##ukid;                                   \
-  struct caml__roots_block *ocamlcc_initial_local_roots_##ukid;         \
+  volatile long ocamlcc_save_sp_offset_##ukid;                          \
+  volatile caml__roots_block_struct_ptr ocamlcc_initial_local_roots_##ukid; \
   ocamlcc_initial_local_roots_##ukid = caml_local_roots;                \
   ocamlcc_save_sp_offset_##ukid = (char*) caml_stack_high - (char*) sp; \
   caml_external_raise = ocamlcc_exception_pushtrap_fun();               \
@@ -105,8 +107,8 @@ struct longjmp_buffer *ocamlcc_exception_poptrap_fun(void) {
 #define ocamlcc_raise(exn) throw(exn)
 
 #define ocamlcc_pushtrap(restore_exn, lab, ukid) {                      \
-  long ocamlcc_save_sp_offset_0_cpp_0;                                  \
-  struct caml__roots_block *ocamlcc_initial_local_roots_0_cpp_0;        \
+  volatile long ocamlcc_save_sp_offset_0_cpp_0;                         \
+  volatile caml__roots_block_struct_ptr ocamlcc_initial_local_roots_0_cpp_0; \
   ocamlcc_initial_local_roots_0_cpp_0 = caml_local_roots;               \
   ocamlcc_save_sp_offset_0_cpp_0 = (char*) caml_stack_high - (char*) sp; \
   try {
