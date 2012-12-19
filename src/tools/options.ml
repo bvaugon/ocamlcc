@@ -121,5 +121,6 @@ let rec add_ccopts sopts =
     ccopts := Printf.sprintf "%s %S" !ccopts sopt;
     add_ccopts rest
   with Not_found ->
-    ccopts := Printf.sprintf "%s %S" !ccopts sopts;
+    if String.length sopts > 0 then
+      ccopts := Printf.sprintf "%s %S" !ccopts sopts;
 ;;
