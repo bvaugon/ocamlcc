@@ -155,10 +155,14 @@ let run_command command =
 ;;
 
 let run_cc args =
+  let fnofp = match !Options.arch with
+    | Types.X86 | Types.X86_64 -> " -fno-omit-frame-pointer"
+    | Types.GEN_ARCH | Types.NO_ARCH -> ""
+  in
   let command =
     Printf.sprintf
-      "%s -D_FILE_OFFSET_BITS=64 %s -I %s -fno-omit-frame-pointer -lm -ldl -lcurses -Wl,-E %s"
-      !Options.ccomp args Config.include_dir !Options.ccopts
+      "%s -D_FILE_OFFSET_BITS=64 %s -I %s%s -lm -ldl -lcurses -Wl,-E %s"
+      !Options.ccomp args Config.include_dir fnofp !Options.ccopts
   in
   run_command command
 ;;
