@@ -10,7 +10,9 @@
 (*                                                                       *)
 (*************************************************************************)
 
-type arch = GEN_ARCH | NO_ARCH | X86 | X86_64
+type arch = Gen_arch | None_arch | X86 | X86_64
+
+type spmode = Local_sp | Global_sp | Register_sp
 
 type sigconf = Reactive | Efficient
 

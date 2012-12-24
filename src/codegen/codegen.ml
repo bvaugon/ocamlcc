@@ -17,7 +17,6 @@ let gen_code cfile macroc =
   Options.verb_start "+ Generating %S..." cfile;
   let oc = open_out cfile in
   if !Options.no_main then Printf.fprintf oc "#define OCAMLCC_NO_MAIN\n";
-  if !Options.global_sp then Printf.fprintf oc "#define OCAMLCC_GLOBAL_SP\n";
   Printf.fprintf oc "#define OCAMLCC_GLOBAL_DATA_LENGTH %d\n"
     (String.length macroc.mc_data);
   Printf.fprintf oc "#define OCAMLCC_MAXIMUM_ARITY %d\n" macroc.mc_max_arity;
@@ -27,13 +26,15 @@ let gen_code cfile macroc =
     !Options.sigconf;
   Printf.fprintf oc "#define OCAMLCC_EXCEPTION_%a\n" Printer.print_except
     !Options.except;
+  Printf.fprintf oc "#define OCAMLCC_SP_%a\n" Printer.print_spmode
+    !Options.sp_mode;
   Printf.fprintf oc "\n";
   Printf.fprintf oc "#if !defined(__GNUC__)\n";
   Printf.fprintf oc
     "  #error - Incompatible code: compiler should be GNU C compatible\n";
   Printf.fprintf oc "#endif\n";
   begin match !Options.arch with
-    | GEN_ARCH | NO_ARCH -> ()
+    | Gen_arch | None_arch -> ()
     | X86 ->
       Printf.fprintf oc
         "#if (!defined(__i386__) && !defined(__i486__)     \\\n     \

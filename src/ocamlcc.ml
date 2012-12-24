@@ -13,6 +13,7 @@
 let set_arch = ref (fun _ -> ());;
 let set_sigconf = ref (fun _ -> ());;
 let set_exception = ref (fun _ -> ());;
+let set_spmode = ref (fun _ -> ());;
 
 (***)
 
@@ -38,8 +39,9 @@ let spec =
      "<x> Define signal reactivity [ R[eactive] | E[fficient] (default) ]");
     ("-exception", Arg.String (fun s -> !set_exception s),
      "<x> Define exception mechanism [ S[etjmp] (default) | T[ry-catch] ]");
-    ("-global-sp", Arg.Set Options.global_sp,
-     " Use a global stack pointer");
+    ("-stack-pointer", Arg.String (fun s -> !set_spmode s),
+   "<x> Define stack-pointer mode [ L[ocal] (default) | G[lobal] | R[egister] ]"
+    );
     ("-trace", Arg.Set Options.trace,
      " Generate additional C code to trace execution");
     ("-no-main", Arg.Set Options.no_main,
@@ -100,6 +102,11 @@ let () = begin
       try Options.except := Options.except_of_string s
       with Invalid_argument _ ->
         error "invalid exception configuration: %S" s);
+  set_spmode :=
+    (fun s ->
+      try Options.sp_mode := Options.spmode_of_string s
+      with Invalid_argument _ ->
+        error "invalid stack-pointer mode configuration: %S" s);
   Arg.parse spec unknow usage;
 end;;
 
@@ -159,7 +166,7 @@ let run_command command =
 let run_cc args =
   let fnofp = match !Options.arch with
     | Types.X86 | Types.X86_64 -> " -fno-omit-frame-pointer"
-    | Types.GEN_ARCH | Types.NO_ARCH -> ""
+    | Types.Gen_arch | Types.None_arch -> ""
   in
   let command =
     Printf.sprintf

@@ -266,9 +266,9 @@ and print_args oc args =
 
 and print_env_args oc (env, args, is_static) =
   match !Options.arch with
-    | NO_ARCH ->
+    | None_arch ->
       fprintf oc "%a, %a" print_env env print_args args
-    | GEN_ARCH ->
+    | Gen_arch ->
       if is_static then
         match env with
           | Some expr -> fprintf oc "%a, %a" print_args args print_expr expr

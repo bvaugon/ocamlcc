@@ -16,13 +16,17 @@ into C code, and sends the result to a C compiler.
 The following command line options are recognized by \fBocamlcc(1)\fR.
 
 .TP
-\fB-arch \fB[ x86 | x86_64 | none ]\fR
-Specify the target architecture. Default is \fInone\fR, in which case
-portable C code is generated.
-
-.TP
 \fB-c\fR
 Stop after the generation of C code.
+
+.TP
+\fB-k\fR
+Keep intermediate bytecode and C files.
+
+.TP
+\fB-o \fIoutfile\fR
+Specify the output file (default is a.out, or the bytecode source file
+with a .c extension).
 
 .TP
 \fB-cc\fR
@@ -33,46 +37,56 @@ Specify which C compiler to use.
 Extra arguments for the C compiler (default is -O3 -Wall).
 
 .TP
-\fB-include\fR
-Print include directory and exit.
+\fB-arch \fB( GEN | NONE | X86 | X86_64 )\fR
+Specify the target architecture. Default is \fBGEN\fR, in which case
+portable C code is generated.
 
 .TP
-\fB-k\fR
-Keep intermediate bytecode and C files.
-
-.TP
-\fB-no-main\fR
-Do not include the main function.
-
-.TP
-\fB-o \fIoutfile\fR
-Specify the output file (default is a.out, or the bytecode source file
-with a .c extension).
-
-.TP
-\fB-signal \fB[ E | R ]\fR
+\fB-signal \fB( E[fficient] | R[eactive] )\fR
 Generate code for signal handling to advantage efficiency (\fBE\fR) or
 reactiveness (\fBR\fR). Default is \fBE\fR.
 
 .TP
-\fB-stat\fR
-Print statistics.
+\fB-exception \fB( S[etjmp] | T[ry-catch] )\fR
+Define exception mechanism: use setjmp/longjmp primitives (\fBS\fR) or
+C++ try-catch control structures (\fBT\fR). Default is \fBS\fR.
+
+.TP
+\fB-stack-pointer ( L[ocal] | G[lobal] | R[egister] )\fR
+Define stack pointer mode: use a local C variable (\fBL\fR), a global
+C variable (\fBG\fR) or a global C register (\fBR\fR). Default is \fBL\fR.
 
 .TP
 \fB-trace\ \fR
 Generate additional C code to trace execution.
 
 .TP
+\fB-no-main\fR
+Do not include the main function.
+
+.TP
+\fB-no-xconst\fR
+Disable xconst (OCaml stack constant extraction) optimisation.
+
+.TP
+\fB-include\fR
+Print include directory and exit.
+
+.TP
+\fB-stat\fR
+Print statistics.
+
+.TP
 \fB-verbose\fR
 Verbose mode.
 
 .TP
-\fB-v\fR
-Print version, include directory and OCaml runtime version, then exit.
-
-.TP
 \fB-version\fR
 Print version and exit.
+
+.TP
+\fB-v\fR
+Print version, include directory and OCaml runtime version, then exit.
 
 .SH SEE ALSO
 .BR \fBocamlclean\fR(1),\ \fBocamlc\fR(1),\ \fBocamlrun\fR(1),\ \fBocamlopt\fR(1)

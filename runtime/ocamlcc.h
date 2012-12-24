@@ -17,6 +17,7 @@
 extern "C" {
 #endif
 
+#include "ocamlcc-byterun/mlvalues.h"
 #include "ocamlcc-sp.c"
 #include "ocamlcc-signals.c"
 #include "ocamlcc-exceptions.c"

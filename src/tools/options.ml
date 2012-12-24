@@ -18,15 +18,17 @@ let trace = ref false;;
 let no_main = ref false;;
 let only_generate_C = ref false;;
 let keep_C_file = ref false;;
-let global_sp = ref false;;
 let output_file : string option ref = ref None;;
 let input_file : string option ref = ref None;;
-let arch = ref NO_ARCH;;
+let arch = ref None_arch;;
 let sigconf = ref Efficient;;
 let except = ref Setjmp;;
+let sp_mode = ref Local_sp;;
 let ccomp = ref Config.ccomp;;
 let ccopts = ref "-O3 -Wall";;
 let no_xconst = ref false;;
+
+(***)
 
 let offset_counter = ref 0;;
 let (message, ofsmsg) =
@@ -65,10 +67,12 @@ and verb_stop () =
   message "%s\n" (etime());
 ;;
 
+(***)
+
 let arch_of_string s =
   match String.lowercase s with
-    | "gen" -> GEN_ARCH
-    | "none" -> NO_ARCH
+    | "gen" -> Gen_arch
+    | "none" -> None_arch
     | "x86" | "i386" | "i486" | "i586" | "i686" -> X86
     | "x86-64" | "x86_64" -> X86_64
     | _ -> invalid_arg "arch_of_string"
@@ -76,8 +80,8 @@ let arch_of_string s =
 
 let string_of_arch a =
   match a with
-    | GEN_ARCH -> "gen"
-    | NO_ARCH -> "none"
+    | Gen_arch -> "gen"
+    | None_arch -> "none"
     | X86 -> "x86"
     | X86_64 -> "x86_64"
 ;;
@@ -96,13 +100,23 @@ let except_of_string s =
     | _ -> invalid_arg "except_of_string"
 ;;
 
+let spmode_of_string s= 
+  match String.lowercase s with
+    | "l" | "local" -> Local_sp
+    | "g" | "global" -> Global_sp
+    | "r" | "register" -> Register_sp
+    | _ -> invalid_arg "spmode_of_string"
+;;
+
+(***)
+
 try arch := arch_of_string Config.default_arch
-with Invalid_argument _ -> arch := NO_ARCH;;
+with Invalid_argument _ -> arch := None_arch;;
 
 let default_arch = string_of_arch !arch;;
 
 let arch_option_doc =
-  let all_archs = [| GEN_ARCH ; NO_ARCH ; X86 ; X86_64 |] in
+  let all_archs = [| Gen_arch ; None_arch ; X86 ; X86_64 |] in
   let buf = Buffer.create 16 in
   Printf.bprintf buf "<x> Define target architecture [ ";
   Array.iteri (fun i a ->
@@ -113,6 +127,8 @@ let arch_option_doc =
   Printf.bprintf buf " ]";
   Buffer.contents buf
 ;;
+
+(***)
 
 let rec add_ccopts sopts =
   try
@@ -125,3 +141,5 @@ let rec add_ccopts sopts =
     if String.length sopts > 0 then
       ccopts := Printf.sprintf "%s %S" !ccopts sopts;
 ;;
+
+(***)

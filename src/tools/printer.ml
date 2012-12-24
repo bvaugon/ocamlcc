@@ -16,10 +16,10 @@ open Tools
 
 let print_arch oc arch =
   match arch with
-    | GEN_ARCH -> output_string oc "GEN"
-    | NO_ARCH  -> output_string oc "NONE"
-    | X86      -> output_string oc "X86"
-    | X86_64   -> output_string oc "X86_64"
+    | Gen_arch  -> output_string oc "GEN"
+    | None_arch -> output_string oc "NONE"
+    | X86       -> output_string oc "X86"
+    | X86_64    -> output_string oc "X86_64"
 ;;
 
 let print_sigconf oc sigconf =
@@ -32,6 +32,13 @@ let print_except oc except =
   match except with
     | Setjmp -> output_string oc "SETJMP"
     | Trycatch -> output_string oc "TRY_CATCH"
+;;
+
+let print_spmode oc spmode =
+  match spmode with
+    | Local_sp -> output_string oc "LOCAL"
+    | Global_sp -> output_string oc "GLOBAL"
+    | Register_sp -> output_string oc "REGISTER"
 ;;
 
 let print_index oc index =

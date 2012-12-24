@@ -13,7 +13,7 @@
 open Printf;;
 open Types;;
 
-module GEN_ARCH = struct
+module Gen_arch = struct
   let gen_fun_type oc n =
     fprintf oc "typedef value (*ocamlcc_fun_%d)(value arg1," n;
     for i = 2 to n do
@@ -84,7 +84,7 @@ static value ocamlcc_exec_closure(long nargs, value closure) {\n\
   ;;
 end;;
 
-module NO_ARCH = struct
+module None_arch = struct
   let gen_store_args oc n =
     fprintf oc "\
 #define ocamlcc_store_args_%d(" n;
@@ -296,10 +296,10 @@ end;;
 
 let gen_applies oc max_arity =
   match !Options.arch with
-    | GEN_ARCH ->
-      GEN_ARCH.gen_applies oc max_arity
-    | NO_ARCH ->
-      NO_ARCH.gen_applies oc max_arity
+    | Gen_arch ->
+      Gen_arch.gen_applies oc max_arity
+    | None_arch ->
+      None_arch.gen_applies oc max_arity
     | X86 | X86_64 ->
       X86X.gen_applies oc max_arity
 ;;

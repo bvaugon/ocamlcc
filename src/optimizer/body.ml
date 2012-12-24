@@ -21,7 +21,7 @@ let test_useenv fun_infos fun_desc =
 
 let test_inlinable funs fun_infos fun_desc =
   match !Options.arch with
-    | GEN_ARCH | NO_ARCH -> true
+    | Gen_arch | None_arch -> true
     | X86 | X86_64 ->
       let body = fun_desc.body in
       let cfun_arity =

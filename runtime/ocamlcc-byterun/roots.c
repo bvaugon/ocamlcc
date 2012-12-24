@@ -26,7 +26,7 @@
 #include "stacks.h"
 
 /* OCamlCC: fix sp macro in global-sp mode */
-#ifdef OCAMLCC_GLOBAL_SP
+#if defined(OCAMLCC_SP_GLOBAL) || defined(OCAMLCC_SP_REGISTER)
 #undef sp
 #endif
 
@@ -108,6 +108,6 @@ CAMLexport void caml_do_local_roots (scanning_action f, value *stack_low,
 }
 
 /* OCamlCC: fix sp macro in global-sp mode */
-#ifdef OCAMLCC_GLOBAL_SP
+#if defined(OCAMLCC_SP_GLOBAL) || defined(OCAMLCC_SP_REGISTER)
 #define sp caml_extern_sp
 #endif

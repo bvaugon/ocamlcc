@@ -38,13 +38,13 @@ let compute_fun_signature fun_id use_env arity =
     let gen_param i = { vd_type = TValue; vd_name = "p" ^ string_of_int i } in
     let fname = "f" ^ string_of_int fun_id in
     match !Options.arch with
-      | NO_ARCH -> {
+      | None_arch -> {
         fs_ret_type = TValue;
         fs_name     = fname;
         fs_params   = [ gen_param 0 ];
         fs_static   = true;
       }
-      | GEN_ARCH | X86 | X86_64 ->
+      | Gen_arch | X86 | X86_64 ->
         let params =
           let rec gen_params i acc =
             if i < 0 then acc else gen_params (i - 1) (gen_param i :: acc)
@@ -80,8 +80,8 @@ let compute_fun_locals arity var_nb use_tmp arg_depths read_args =
   let gen_var c i = { vd_type = TValue; vd_name = Printf.sprintf "%c%d" c i } in
   let params =
     match !Options.arch with
-      | GEN_ARCH | X86 | X86_64 -> []
-      | NO_ARCH ->
+      | Gen_arch | X86 | X86_64 -> []
+      | None_arch ->
         let rec f i acc =
           if i <= 0 then acc else
             if ISet.mem i read_args && not (IMap.mem i arg_depths) then
@@ -101,7 +101,7 @@ let compute_fun_locals arity var_nb use_tmp arg_depths read_args =
 
 let compute_fun_init puti use_env arity arg_depths read_args =
   match !Options.arch with
-    | NO_ARCH ->
+    | None_arch ->
       if use_env then
         puti (IAffect (LAcc (-1, 0), ELvalue (LGlobal "ocamlcc_global_env")));
       for i = 0 to arity - 1 do
@@ -117,7 +117,7 @@ let compute_fun_init puti use_env arity arg_depths read_args =
             let c = LArray (LGlobal "ocamlcc_global_params", i - 1) in
             puti (IAffect (LParam i, ELvalue c))
       done
-    | GEN_ARCH | X86 | X86_64 ->
+    | Gen_arch | X86 | X86_64 ->
       if use_env then puti (IAffect (LAcc (-1, 0), ELvalue LEnv));
       for i = 0 to arity - 1 do
         try
