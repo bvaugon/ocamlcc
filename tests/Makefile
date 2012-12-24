@@ -30,6 +30,7 @@ ARCHCS = $(BYTES:.byte=-$(ARCH).c)
 NXCARCHCS = $(BYTES:.byte=-nxc-$(ARCH).c)
 TCCCS = $(BYTES:.byte=-tcc.c)
 CLANGCS = $(BYTES:.byte=-clang.c)
+GSPCS = $(BYTES:.byte=-gsp.c)
 S = $(CS:.c=)
 NONES = $(NONECS:.c=)
 NXCS = $(NXCCS:.c=)
@@ -37,6 +38,7 @@ ARCHS = $(ARCHCS:.c=)
 NXCARCHS = $(NXCARCHCS:.c=)
 TCCS = $(TCCCS:.c=)
 CLANGS = $(CLANGCS:.c=)
+GSPS = $(GSPCS:.c=)
 
 ###
 
@@ -67,10 +69,10 @@ endif
 ifeq ($(MANAGED_ARCH), true)
 TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS) \
 	 $(ARCHCS) $(ARCHS) $(NXCARCHCS) $(NXCARCHS) $(TCCCS) $(TCCS) \
-	 $(CLANGCS) $(CLANGS)
+	 $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS)
 else
 TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS) \
-	$(TCCCS) $(TCCS) $(CLANGCS) $(CLANGS)
+	 $(TCCCS) $(TCCS) $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS)
 endif
 
 ###
@@ -106,6 +108,9 @@ ocamlc-$(ARCH).c: $(OCAMLC) check-project
 ocamlc-nxc-$(ARCH).c: $(OCAMLC) check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
 
+ocamlc-gsp.c: $(OCAMLC) check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN -global-sp $< -o $@
+
 ###
 
 flocon.byte: flocon.ml
@@ -128,6 +133,9 @@ flocon-$(ARCH).c: flocon.byte check-project
 
 flocon-nxc-$(ARCH).c: flocon.byte check-project
 	$(OCAMLCC) -signal R -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
+
+flocon-gsp.c: flocon.byte check-project
+	$(OCAMLCC) -signal R -c -verbose -stat -arch GEN -global-sp $< -o $@
 
 floco%: floco%.c check-project
 	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -L $(LIBDIR) \
@@ -159,8 +167,13 @@ floco%: floco%.c check-project
 %-nxc-$(ARCH).c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
 
+%-gsp.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN -global-sp $< -o $@
+
+###
+
 %: %.c check-project
-	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O2
+	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O3
 
 %-$(ARCH): %-$(ARCH).c check-project
 	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -fno-omit-frame-pointer -O3
@@ -177,7 +190,7 @@ clean:
 	@rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) ocamlc.c ocamlc ocamlc-nxc.c \
 	  ocamlc-nxc ocamlc-$(ARCH).c ocamlc-$(ARCH) ocamlc-nxc-$(ARCH).c \
 	  ocamlc-nxc-$(ARCH) ocamlc-none.c ocamlc-none ocamlc-tcc.c ocamlc-tcc \
-	  ocamlc-clang.c ocamlc-clang a.out
+	  ocamlc-clang.c ocamlc-clang ocamlc-gsp a.out
 
 ###
 

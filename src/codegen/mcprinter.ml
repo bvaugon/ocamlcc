@@ -315,13 +315,13 @@ and print_expr oc expr =
 
 and print_lvalue oc lvalue =
   match lvalue with
-    | LSp           -> fprintf oc "sp"
     | LEnv          -> fprintf oc "env"
     | LTmp          -> fprintf oc "tmp"
     | LVar n        -> fprintf oc "v%d" n
     | LParam n      -> fprintf oc "p%d" n
     | LGlobal s     -> fprintf oc "%s" s
     | LArray (l, i) -> fprintf oc "%a[%d]" print_lvalue l i
+    | LAcc (n, ofs) -> fprintf oc "StackAcc(%d, %d)" n ofs
 
 and print_ctype oc ctype =
   match ctype with
@@ -446,6 +446,7 @@ and print_fun_def oc {
   end;
   List.iter (print_local oc) locals;
   if !cnt <> 0 then fprintf oc ";\n";
+  fprintf oc "  DeclareLocalSp();\n";
   List.iter (print_instr oc) body;
   fprintf oc "}\n\n";
 

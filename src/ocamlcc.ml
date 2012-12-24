@@ -38,6 +38,8 @@ let spec =
      "<x> Define signal reactivity [ R[eactive] | E[fficient] (default) ]");
     ("-exception", Arg.String (fun s -> !set_exception s),
      "<x> Define exception mechanism [ S[etjmp] (default) | T[ry-catch] ]");
+    ("-global-sp", Arg.Set Options.global_sp,
+     " Use a global stack pointer");
     ("-trace", Arg.Set Options.trace,
      " Generate additional C code to trace execution");
     ("-no-main", Arg.Set Options.no_main,

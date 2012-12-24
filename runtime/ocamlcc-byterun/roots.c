@@ -25,6 +25,11 @@
 #include "roots.h"
 #include "stacks.h"
 
+/* OCamlCC: fix sp macro in global-sp mode */
+#ifdef OCAMLCC_GLOBAL_SP
+#undef sp
+#endif
+
 CAMLexport struct caml__roots_block *caml_local_roots = NULL;
 
 CAMLexport void (*caml_scan_roots_hook) (scanning_action f) = NULL;
@@ -101,3 +106,8 @@ CAMLexport void caml_do_local_roots (scanning_action f, value *stack_low,
     }
   }
 }
+
+/* OCamlCC: fix sp macro in global-sp mode */
+#ifdef OCAMLCC_GLOBAL_SP
+#define sp caml_extern_sp
+#endif

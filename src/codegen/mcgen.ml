@@ -96,36 +96,33 @@ let compute_fun_locals arity var_nb use_tmp arg_depths read_args =
     f (var_nb - 1) []
   in
   let tmp = if use_tmp then [ { vd_type = TValue; vd_name = "tmp" } ] else [] in
-  let sp = [ { vd_type = TPValue; vd_name = "sp" } ] in
-  params @ vars @ tmp @ sp
+  params @ vars @ tmp
 ;;
 
 let compute_fun_init puti use_env arity arg_depths read_args =
-  puti (IAffect (LSp, ELvalue (LGlobal "caml_extern_sp")));
   match !Options.arch with
     | NO_ARCH ->
       if use_env then
-        puti (IAffect (LArray (LSp, -1),
-                       ELvalue (LGlobal "ocamlcc_global_env")));
+        puti (IAffect (LAcc (-1, 0), ELvalue (LGlobal "ocamlcc_global_env")));
       for i = 0 to arity - 1 do
         try
           let ofs = IMap.find i arg_depths in
           if i = 0 then
-            puti (IAffect (LArray (LSp, -ofs), ELvalue (LParam 0)))
+            puti (IAffect (LAcc (-ofs, 0), ELvalue (LParam 0)))
           else
             let c = LArray (LGlobal "ocamlcc_global_params", i - 1) in
-            puti (IAffect (LArray (LSp, -ofs), ELvalue c))
+            puti (IAffect (LAcc (-ofs, 0), ELvalue c))
         with Not_found ->
           if i <> 0 && ISet.mem i read_args then
             let c = LArray (LGlobal "ocamlcc_global_params", i - 1) in
             puti (IAffect (LParam i, ELvalue c))
       done
     | GEN_ARCH | X86 | X86_64 ->
-      if use_env then puti (IAffect (LArray (LSp, -1), ELvalue LEnv));
+      if use_env then puti (IAffect (LAcc (-1, 0), ELvalue LEnv));
       for i = 0 to arity - 1 do
         try
           let ofs = IMap.find i arg_depths in
-          puti (IAffect (LArray (LSp, -ofs), ELvalue (LParam i)))
+          puti (IAffect (LAcc (-ofs, 0), ELvalue (LParam i)))
         with Not_found -> ()
       done
 ;;
@@ -215,8 +212,10 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
   let export_glob n = EGlob n in
   let export_glob_field (n, p) = EGlobField (n, p) in
   let export_atom tag = EAtom tag in
-  let export_clsr ofs = EOffset (ELvalue (LArray (LSp, -1)), ofs * 3 / 2) in
-  let export_envacc n =
+  let export_clsr ?(offset=0) ofs =
+    EOffset (ELvalue (LAcc (-1, offset)), ofs * 3 / 2)
+  in
+  let export_envacc ?(offset=0) n =
     let orig_env_index = match fun_desc.env_desc with
       | ENone -> assert false
       | ENonRec _ -> n
@@ -229,29 +228,29 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
       else
         f (i + 1) (new_env_index - 1)
     in
-    EField (ELvalue (LArray (LSp, -1)), f 0 n + 2)
+    EField (ELvalue (LAcc (-1, offset)), f 0 n + 2)
   in
-  let export_arg n =
-    try ELvalue (LArray (LSp, -(IMap.find n arg_depths)))
+  let export_arg ?(offset=0) n =
+    try ELvalue (LAcc (-(IMap.find n arg_depths), offset))
     with Not_found -> ELvalue (LParam n)
   in
-  let export_cell id =
+  let export_cell ?(offset=0) id =
     if is_ptr id && IMap.mem id ptr_depths then
-      LArray (LSp, -(IMap.find id ptr_depths))
+      LAcc (-(IMap.find id ptr_depths), offset)
     else
       LVar (IMap.find id var_levels)
   in
-  let export_val_desc id =
+  let export_val_desc ?(offset=0) id =
     match IMap.find id idvd_map with
       | VConst n -> export_constint n
       | VGlob n -> export_glob n
       | VGlobField (n, p) -> export_glob_field (n, p)
       | VAtom tag -> export_atom tag
-      | VClsr ofs -> export_clsr ofs
-      | VEnv n -> export_envacc n
-      | VArg n -> export_arg n
+      | VClsr ofs -> export_clsr ~offset ofs
+      | VEnv n -> export_envacc ~offset n
+      | VArg n -> export_arg ~offset n
       | VPtr _ -> assert false
-      | VCell -> ELvalue (export_cell id)
+      | VCell -> ELvalue (export_cell ~offset id)
   in
   let export_move src_id dst_id =
     if is_read dst_id then (
@@ -380,42 +379,44 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
       | DynamicApply nargs | PartialApply nargs | StaticApply (nargs, _)
       | DynamicAppterm (nargs, _) | PartialAppterm (nargs, _)
       | SpecialAppterm (nargs, _) | StaticAppterm (nargs, _, _) ->
+        let curr_frame_sz = compute_frame_size ind in
+        let next_frame_sz =
+          match instr.bc with
+            | DynamicApply _ | PartialApply _ | StaticApply _ ->
+              compute_frame_size (ind + 1)
+            | _ -> 0
+        in
         let get_dst () =
           let dst_id = get_accu_id (ind + 1) in
           if is_read dst_id then (
             assert (is_cell dst_id);
-            Some (export_cell dst_id)
+            Some (export_cell ~offset:next_frame_sz dst_id)
           ) else None
         in
         let args =
           let rec f i acc =
             if i = -1 then acc
-            else f (i - 1) (export_val_desc (get_stack_id ind i) :: acc)
+            else f (i - 1) (export_val_desc ~offset:next_frame_sz
+                              (get_stack_id ind i) :: acc)
           in
           f (nargs - 1) []
         in
         let clsr_id = get_accu_id ind in
-        let get_clsr () = export_val_desc clsr_id in
+        let get_clsr () = export_val_desc ~offset:next_frame_sz clsr_id in
         begin match instr.bc with
           | DynamicApply _ ->
-            let curr_frame_sz = compute_frame_size ind in
-            let next_frame_sz = compute_frame_size (ind + 1) in
             let dst = get_dst () in
             let clsr = get_clsr () in
             putm (DYNAMIC_APPLY (nargs, nargs + 1, curr_frame_sz, next_frame_sz,
                                  dst, Some clsr, args));
 
           | PartialApply _ ->
-            let curr_frame_sz = compute_frame_size ind in
-            let next_frame_sz = compute_frame_size (ind + 1) in
             let dst = get_dst () in
             let clsr = get_clsr () in
             putm (PARTIAL_APPLY (nargs, nargs + 1, curr_frame_sz, next_frame_sz,
                                  dst, Some clsr, args));
 
           | StaticApply (_, ptr) ->
-            let curr_frame_sz = compute_frame_size ind in
-            let next_frame_sz = compute_frame_size (ind + 1) in
             let useenv =
               Body.test_useenv fun_infos (IMap.find ptr.pointed.index funs)
             in
@@ -433,7 +434,6 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
 
           | DynamicAppterm (nargs, _) ->
             if !Options.trace then puti (ITrace (MLAppterm fun_id));
-            let curr_frame_sz = compute_frame_size ind in
             let clsr = get_clsr () in
             if nargs >= cfun_arity && (!Options.arch <> X86_64 || nargs >= 6)
             then
@@ -445,7 +445,6 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
 
           | PartialAppterm (nargs, _) ->
             if !Options.trace then puti (ITrace (MLAppterm fun_id));
-            let curr_frame_sz = compute_frame_size ind in
             let clsr = get_clsr () in
             if nargs >= cfun_arity then
               putm (PARTIAL_SPECIAL_APPTERM(nargs, nargs + 1, curr_frame_sz,
@@ -473,7 +472,6 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
 
           | SpecialAppterm _ ->
             if !Options.trace then puti (ITrace (MLAppterm fun_id));
-            let curr_frame_sz = compute_frame_size ind in
             let clsr = get_clsr () in
             putm (SPECIAL_SPECIAL_APPTERM (nargs, nargs+1, curr_frame_sz,
                                            Some clsr, args));
@@ -730,16 +728,19 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
         if !Options.trace then puti (ITrace (CEnter prims.(p)));
         let frame_sz = compute_frame_size (ind + 1) in
         let accu_id = get_accu_id ind in
-        let accu = export_val_desc accu_id in
+        let accu = export_val_desc ~offset:frame_sz accu_id in
         let dst_id = get_accu_id (ind + 1) in
         let dst = match is_read dst_id with
-          | true -> assert (is_cell dst_id); Some (export_cell dst_id)
+          | true ->
+            assert (is_cell dst_id);
+            Some (export_cell ~offset:frame_sz dst_id)
           | false -> None
         in
         let args =
           let rec f i acc =
-            if i = -1 then acc
-            else f (i - 1) (export_val_desc (get_stack_id ind i) :: acc)
+            if i = -1 then acc else
+              f (i - 1) (export_val_desc ~offset:frame_sz (get_stack_id ind i)
+                         :: acc)
           in
           accu :: f (n - 2) []
         in

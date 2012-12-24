@@ -152,25 +152,6 @@ static value ocamlcc_fix_tailcalls() {
 
 /***/
 
-#define ocamlcc_apply_init_stack(curr_fsz, next_fsz) {                    \
-  if (next_fsz != 0) {                                                    \
-    if ((caml_extern_sp = sp - next_fsz) < caml_stack_threshold) {        \
-      caml_extern_sp = sp - curr_fsz;                                     \
-      caml_realloc_stack(Stack_threshold / sizeof(value));                \
-      sp = caml_extern_sp + curr_fsz;                                     \
-      caml_extern_sp = sp - next_fsz;                                     \
-    }                                                                     \
-  } else {                                                                \
-    caml_extern_sp = sp;                                                  \
-  }                                                                       \
-}
-
-#define ocamlcc_apply_restore_stack(next_fsz) {                           \
-  sp = caml_extern_sp + next_fsz;                                         \
-}
-
-/***/
-
 #define ocamlcc_dynamic_apply(nargs, cfun_nargs, curr_fsz, next_fsz,    \
                               dst, env, args...) {                      \
   ocamlcc_apply_init_stack(curr_fsz, next_fsz);                         \
@@ -212,7 +193,7 @@ static value ocamlcc_fix_tailcalls() {
 
 #define ocamlcc_dynamic_standard_appterm(nargs, cfun_nargs, curr_fsz,   \
                                          env, args...) {                \
-  caml_extern_sp = sp;                                                  \
+  OffsetSp(0);                                                          \
   if (Field(env, 1) == Val_long(nargs)) {                               \
     return ((ocamlcc_fun_##nargs) Field(env, 0))(args, env);            \
   } else {                                                              \
@@ -223,13 +204,13 @@ static value ocamlcc_fix_tailcalls() {
 
 #define ocamlcc_partial_standard_appterm(nargs, cfun_nargs, curr_fsz,   \
                                          env, args...) {                \
-  caml_extern_sp = sp;                                                  \
+  OffsetSp(0);                                                          \
   ocamlcc_store_args_##nargs(args);                                     \
   return ocamlcc_generic_apply(nargs, env);                             \
 }
 
 #define ocamlcc_static_standard_appterm(nargs, cfun_nargs, f, args...) { \
-  caml_extern_sp = sp;                                                  \
+  OffsetSp(0);                                                          \
   return f(args);                                                       \
 }
 
@@ -237,7 +218,7 @@ static value ocamlcc_fix_tailcalls() {
 
 #define ocamlcc_dynamic_special_appterm(nargs, cfun_nargs, curr_fsz,    \
                                         env, args...) {                 \
-  caml_extern_sp = sp;                                                  \
+  OffsetSp(0);                                                          \
   ocamlcc_global_nargs = nargs;                                         \
   ocamlcc_global_closure = env;                                         \
   ocamlcc_global_fun = NULL;                                            \
@@ -251,7 +232,7 @@ static value ocamlcc_fix_tailcalls() {
 
 #define ocamlcc_static_special_appterm(nargs, cfun_nargs, f, env,       \
                                        args...) {                       \
-  caml_extern_sp = sp;                                                  \
+  OffsetSp(0);                                                          \
   ocamlcc_global_nargs = nargs;                                         \
   ocamlcc_global_closure = env;                                         \
   ocamlcc_global_fun = (ocamlcc_fun) &f;                                \

@@ -232,7 +232,7 @@ module X86X = struct
         fprintf oc "\n";
         fprintf oc "  } else {\n";
         fprintf oc "    value new_closure;\n";
-        fprintf oc "    value *sp = caml_extern_sp;\n";
+        fprintf oc "    DeclareLocalSp();\n";
         fprintf oc "    switch (arity) {\n";
         for i = 1 to n - 1 do
           if i < n - 1 then fprintf oc "      case %d: {\n" i

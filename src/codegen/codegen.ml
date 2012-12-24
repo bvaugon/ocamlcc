@@ -17,6 +17,7 @@ let gen_code cfile macroc =
   Options.verb_start "+ Generating %S..." cfile;
   let oc = open_out cfile in
   if !Options.no_main then Printf.fprintf oc "#define OCAMLCC_NO_MAIN\n";
+  if !Options.global_sp then Printf.fprintf oc "#define OCAMLCC_GLOBAL_SP\n";
   Printf.fprintf oc "#define OCAMLCC_GLOBAL_DATA_LENGTH %d\n"
     (String.length macroc.mc_data);
   Printf.fprintf oc "#define OCAMLCC_MAXIMUM_ARITY %d\n" macroc.mc_max_arity;

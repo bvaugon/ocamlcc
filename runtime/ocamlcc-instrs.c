@@ -10,11 +10,13 @@
 /*                                                                       */
 /*************************************************************************/
 
+/* Tools */
+
 #define Glob(n) Field(caml_global_data, n)
 #define GlobField(n, p) Field(Field(caml_global_data, n), p)
 #define Offset(clsr, ofs) ((value) (((value *) clsr) + ofs))
 
-/* - */
+/* Push, pop, assign */
 
 #define MOVE(src, dst) \
   (dst) = (src);
@@ -58,7 +60,7 @@
 #define DIVINT(op1, op2, dst, frame_sz) {                       \
   tmp = Long_val(op2);                                          \
   if (tmp == 0) {                                               \
-    caml_extern_sp = sp - frame_sz;                             \
+    OffsetSp(-frame_sz);                                        \
     caml_raise_zero_divide();                                   \
   }                                                             \
   dst Val_long(caml_safe_div(Long_val(op1), tmp));              \
@@ -67,7 +69,7 @@
 #define MODINT(op1, op2, dst, frame_sz) {                       \
   tmp = Long_val(op2);                                          \
   if (tmp == 0) {                                               \
-    caml_extern_sp = sp - frame_sz;                             \
+    OffsetSp(-frame_sz);                                        \
     caml_raise_zero_divide();                                   \
   }                                                             \
   dst Val_long(caml_safe_mod(Long_val(op1), tmp));              \
@@ -78,7 +80,7 @@
 #define DIVINT(op1, op2, dst, frame_sz) {                       \
   tmp = Long_val(op2);                                          \
   if (tmp == 0) {                                               \
-    caml_extern_sp = sp - frame_sz;                             \
+    OffsetSp(-frame_sz);                                        \
     caml_raise_zero_divide();                                   \
   }                                                             \
   dst Val_long(Long_val(op1) / tmp);                            \
@@ -87,7 +89,7 @@
 #define MODINT(op1, op2, dst, frame_sz) {                       \
   tmp = Long_val(op2);                                          \
   if (tmp == 0) {                                               \
-    caml_extern_sp = sp - frame_sz;                             \
+    OffsetSp(-frame_sz);                                        \
     caml_raise_zero_divide();                                   \
   }                                                             \
   dst Val_long(Long_val(op1) % tmp);                            \
@@ -245,7 +247,7 @@
 /***/
 
 #define RETURN(src)                             \
-  caml_extern_sp = sp;                          \
+  OffsetSp(0);                                  \
   return (src);
 
 
@@ -253,44 +255,48 @@
 
 #define MAKE_YOUNG_BLOCK(size, tag, dst, frame_sz)      \
   Ocamlcc_alloc_small((dst), (size), (tag),             \
-                      caml_extern_sp = sp - frame_sz,);
+                      OffsetSp(-frame_sz), ResetSp(-frame_sz));
 
 #define MAKE_SAVED_YOUNG_BLOCK(to_save, size, tag, dst, frame_sz)       \
   Ocamlcc_alloc_small((dst), (size), (tag),                             \
-                      *(caml_extern_sp = sp - frame_sz - 1) = to_save,  \
-                      to_save = *caml_extern_sp);
+                      *(OffsetSp(-frame_sz - 1)) = to_save,             \
+                      to_save = *caml_extern_sp; ResetSp(-frame_sz - 1));
 
 #define MAKE_BLOCK(size, tag, dst, frame_sz) {          \
-  caml_extern_sp = sp - frame_sz;                       \
+  OffsetSp(-frame_sz);                                  \
   (dst) = caml_alloc_shr((size), (tag));                \
+  ResetSp(-frame_sz);                                   \
 }
 
 #define MAKE_SAVED_BLOCK(to_save, size, tag, dst, frame_sz) {   \
-  *(caml_extern_sp = sp - frame_sz - 1) = to_save;              \
+  *(OffsetSp(-frame_sz - 1)) = to_save;                         \
   (dst) = caml_alloc_shr((size), (tag));                        \
   to_save = *caml_extern_sp;                                    \
+  ResetSp(-frame_sz - 1);                                       \
 }
 
 #define MAKE_YOUNG_FLOAT_BLOCK(size, dst, frame_sz)                     \
   Ocamlcc_alloc_small((dst), (size) * Double_wosize,                    \
                       Double_array_tag,                                 \
-                      caml_extern_sp = sp - frame_sz,);
+                      OffsetSp(-frame_sz), ResetSp(-frame_sz));
 
 #define MAKE_SAVED_YOUNG_FLOAT_BLOCK(to_save, size, dst, frame_sz)      \
   Ocamlcc_alloc_small((dst), (size) * Double_wosize,                    \
                       Double_array_tag,                                 \
-                      *(caml_extern_sp = sp - frame_sz - 1) = to_save,  \
-                      to_save = *caml_extern_sp);
+                      *(OffsetSp(-frame_sz - 1)) = to_save,             \
+                      to_save = *caml_extern_sp; ResetSp(-frame_sz - 1));
 
 #define MAKE_FLOAT_BLOCK(size, dst, frame_sz) {                         \
-  caml_extern_sp = sp - frame_sz;                                       \
+  OffsetSp(-frame_sz);                                                  \
   (dst) = caml_alloc_shr((size) * Double_wosize, Double_array_tag);     \
+  ResetSp(-frame_sz);                                                   \
 }
 
 #define MAKE_SAVED_FLOAT_BLOCK(to_save, size, dst, frame_sz) {          \
-  *(caml_extern_sp = sp - frame_sz - 1) = to_save;                      \
+  *(OffsetSp(-frame_sz - 1)) = to_save;                                 \
   (dst) = caml_alloc_shr((size) * Double_wosize, Double_array_tag);     \
   to_save = *caml_extern_sp;                                            \
+  ResetSp(-frame_sz);                                                   \
 }
 
 /* Access to components of blocks */
@@ -313,7 +319,7 @@
 #define GETFLOATFIELD(ind, block, dst, frame_sz) {               \
   double d = Double_field((block), (ind));                       \
   Ocamlcc_alloc_small(tmp, Double_wosize, Double_tag,            \
-                      caml_extern_sp = sp - frame_sz,);          \
+                      OffsetSp(-frame_sz), ResetSp(-frame_sz));  \
   Store_double_val(tmp, d);                                      \
   (dst) = tmp;                                                   \
 }
@@ -339,18 +345,20 @@
 /* C function call */
 
 #define CCALL(dst, fname, frame_sz, args...) {                         \
-  tmp = (char *) caml_stack_high - (char *) sp;                        \
-  caml_extern_sp = sp - frame_sz;                                      \
+  SaveSp(tmp);                                                         \
+  OffsetSp(-frame_sz);                                                 \
   dst fname(args);                                                     \
-  sp = (value *) ((char *) caml_stack_high - tmp);                     \
+  ResetSp(-frame_sz);                                                  \
+  RestoreSp(tmp);                                                      \
 }
 
 #define BIG_CCALL(nargs, dst, fname, frame_sz, args...) {              \
   value arg_tbl[nargs] = { args };                                     \
-  tmp = (char *) caml_stack_high - (char *) sp;                        \
-  caml_extern_sp = sp - frame_sz;                                      \
+  SaveSp(tmp);                                                         \
+  OffsetSp(-frame_sz);                                                 \
   dst fname(arg_tbl, nargs);                                           \
-  sp = (value *) ((char *) caml_stack_high - tmp);                     \
+  ResetSp(-frame_sz);                                                  \
+  RestoreSp(tmp);                                                      \
 }
 
 

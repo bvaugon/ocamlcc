@@ -17,6 +17,7 @@
 extern "C" {
 #endif
 
+#include "ocamlcc-sp.c"
 #include "ocamlcc-signals.c"
 #include "ocamlcc-exceptions.c"
 #include "ocamlcc-windows.c"

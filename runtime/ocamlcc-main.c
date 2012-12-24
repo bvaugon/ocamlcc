@@ -21,17 +21,17 @@ static void ocamlcc_bytecode_main(void);
 value ocamlcc_main() {
   CAMLparam0();
   CAMLlocal1(result);
-  value *sp = caml_extern_sp;
+  DeclareLocalSp();
   ocamlcc_exception_init();
   ocamlcc_pushtrap(result = Make_exception_result(caml_exn_bucket),
                    catch_label, 0_main_0);
   ocamlcc_bytecode_main();
   ocamlcc_poptrap(0);
-  caml_extern_sp = sp;
+  OffsetSp(0);
   result = Val_unit;
   goto end;
   ocamlcc_catch(catch_label, result = Make_exception_result(exn));
-  caml_extern_sp = sp;
+  OffsetSp(0);
  end:
   CAMLreturn(result);
 }

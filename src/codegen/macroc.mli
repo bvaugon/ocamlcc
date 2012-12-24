@@ -127,13 +127,13 @@ and expr =
   | EMakeHeader of size * tag * color (* Construct OCaml block header       *)
 
 and lvalue =
-  | LSp                    (* Local stack pointer              *)
   | LEnv                   (* Local environment pointer        *)
   | LTmp                   (* Local temporary variable         *)
   | LVar of int            (* Local C variable (v0, v1, ...)   *)
   | LParam of int          (* Function parameter (p0, p1, ...) *)
   | LGlobal of string      (* Global variable                  *)
   | LArray of lvalue * int (* Array cell                       *)
+  | LAcc of int * int      (* Local stack access               *)
 
 and ctype =
   | TVoid    (* void   *)

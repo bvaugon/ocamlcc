@@ -72,13 +72,12 @@ struct longjmp_buffer *ocamlcc_exception_poptrap_fun(void) {
   volatile long ocamlcc_save_sp_offset_##ukid;                          \
   volatile caml__roots_block_struct_ptr ocamlcc_initial_local_roots_##ukid; \
   ocamlcc_initial_local_roots_##ukid = caml_local_roots;                \
-  ocamlcc_save_sp_offset_##ukid = (char*) caml_stack_high - (char*) sp; \
+  SaveSp(ocamlcc_save_sp_offset_##ukid);                                \
   caml_external_raise = ocamlcc_exception_pushtrap_fun();               \
   if (setjmp(caml_external_raise->buf)) {                               \
     caml_external_raise = ocamlcc_exception_poptrap_fun();              \
     caml_local_roots = ocamlcc_initial_local_roots_##ukid;              \
-    sp = (value *) ((char *) caml_stack_high -                          \
-                    ocamlcc_save_sp_offset_##ukid);                     \
+    RestoreSp(ocamlcc_save_sp_offset_##ukid);                           \
     restore_exn;                                                        \
     goto lab;                                                           \
   }
@@ -110,7 +109,7 @@ struct longjmp_buffer *ocamlcc_exception_poptrap_fun(void) {
   volatile long ocamlcc_save_sp_offset_0_cpp_0;                         \
   volatile caml__roots_block_struct_ptr ocamlcc_initial_local_roots_0_cpp_0; \
   ocamlcc_initial_local_roots_0_cpp_0 = caml_local_roots;               \
-  ocamlcc_save_sp_offset_0_cpp_0 = (char*) caml_stack_high - (char*) sp; \
+  SaveSp(ocamlcc_save_sp_offset_0_cpp_0);                               \
   try {
 
 #define ocamlcc_poptrap(frame_sz)                                       \
@@ -122,8 +121,7 @@ struct longjmp_buffer *ocamlcc_exception_poptrap_fun(void) {
 #define ocamlcc_catch(lab, restore_exn) ;                               \
   } catch(value exn) {                                                  \
     caml_local_roots = ocamlcc_initial_local_roots_0_cpp_0;             \
-    sp = (value *) ((char *) caml_stack_high -                          \
-                    ocamlcc_save_sp_offset_0_cpp_0);                    \
+    RestoreSp(ocamlcc_save_sp_offset_0_cpp_0);                          \
     restore_exn;                                                        \
   }                                                                     \
 }

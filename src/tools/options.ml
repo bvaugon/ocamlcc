@@ -18,6 +18,7 @@ let trace = ref false;;
 let no_main = ref false;;
 let only_generate_C = ref false;;
 let keep_C_file = ref false;;
+let global_sp = ref false;;
 let output_file : string option ref = ref None;;
 let input_file : string option ref = ref None;;
 let arch = ref NO_ARCH;;
