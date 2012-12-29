@@ -764,10 +764,12 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
       ) arg_set ISet.empty
   in
   let gc_read = ref gc_read in
+  let env_ints = ref env_ints in
   if !Options.no_xconst then (
     ISet.iter (fun id -> ptr_read id; ptr_write id; int_read id; int_write id;
                  gc_read := ISet.add id !gc_read) cell_set;
     int_set := ISet.empty;
+    env_ints := ISet.empty;
   );
   let ptr_set =
     ISet.diff (ISet.inter (ISet.inter !ptr_write_set !ptr_read_set)
@@ -789,7 +791,7 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
   in
   (* Remark: if id is not read then id is not a pointer or not a variable. *)
   (ptr_set, !int_set, read_set, ptr_res, read_args, use_env, ofs_clo, env_set,
-   env_ints)
+   !env_ints)
 ;;
 
 let extract_constants prims funs =
