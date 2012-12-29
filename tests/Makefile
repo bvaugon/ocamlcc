@@ -206,7 +206,8 @@ clean:
 	@rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) ocamlc.c ocamlc ocamlc-nxc.c \
 	  ocamlc-nxc ocamlc-$(ARCH).c ocamlc-$(ARCH) ocamlc-nxc-$(ARCH).c \
 	  ocamlc-nxc-$(ARCH) ocamlc-none.c ocamlc-none ocamlc-tcc.c ocamlc-tcc \
-	  ocamlc-clang.c ocamlc-clang ocamlc-gsp ocamlc-rsp a.out
+	  ocamlc-clang.c ocamlc-clang ocamlc-gsp.c ocamlc-gsp ocamlc-rsp.c \
+	  ocamlc-rsp a.out
 
 ###
 
