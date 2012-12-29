@@ -120,14 +120,23 @@ Special static applies -> %6d  (%.2f%%)\n\
 let xconst_fun_infos oc fun_infos =
   let fun_nb = ref 0 in
   let arg_nb = ref 0 in
+  let int_arg_nb = ref 0 in
   let ptr_arg_nb = ref 0 in
+  let int_res_nb = ref 0 in
   let ptr_res_nb = ref 0 in
   let run_gc_nb = ref 0 in
   let f _ fun_info =
     incr fun_nb;
     arg_nb := !arg_nb + Array.length fun_info.ptr_args;
-    Array.iter (fun b -> if b then incr ptr_arg_nb) fun_info.ptr_args;
-    if fun_info.ptr_res then incr ptr_res_nb;
+    Array.iter (function
+      | Integer -> incr int_arg_nb
+      | Unknown -> ()
+      | Allocated -> incr ptr_arg_nb) fun_info.ptr_args;
+    begin match fun_info.ptr_res with
+      | Integer -> incr int_res_nb
+      | Unknown -> ()
+      | Allocated -> incr ptr_res_nb
+    end;
     if fun_info.run_gc then incr run_gc_nb;
   in
   IMap.iter f (IMap.remove 0 fun_infos);
@@ -135,12 +144,17 @@ let xconst_fun_infos oc fun_infos =
 \                       -> %6d functions\n\
 \                       -> %6d arguments\n\
 \n\
+Integer arguments      -> %6d  (%.2f%%)\n\
 Pointer arguments      -> %6d  (%.2f%%)\n\
+Integer results        -> %6d  (%.2f%%)\n\
 Pointer results        -> %6d  (%.2f%%)\n\
 Funs that may run GC   -> %6d  (%.2f%%)\n\n"
-    !fun_nb !arg_nb !ptr_arg_nb (percentage !ptr_arg_nb !arg_nb)
-    !ptr_res_nb (percentage !ptr_res_nb !fun_nb) !run_gc_nb
-    (percentage !run_gc_nb !fun_nb)
+    !fun_nb !arg_nb
+    !int_arg_nb (percentage !int_arg_nb !arg_nb)
+    !ptr_arg_nb (percentage !ptr_arg_nb !arg_nb)
+    !int_res_nb (percentage !int_res_nb !fun_nb)
+    !ptr_res_nb (percentage !ptr_res_nb !fun_nb)
+    !run_gc_nb (percentage !run_gc_nb !fun_nb)
 ;;
 
 let environments oc fun_infos =

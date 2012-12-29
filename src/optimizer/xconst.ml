@@ -396,7 +396,7 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
   in
   let ofsclsrs = ref [] in
   let envaccs = ref [] in
-  let return_ptr = ref false in
+  let return_ptr = ref Unknown in
   let int_set = ref ISet.empty in
   let return_set = ref ISet.empty in
   let ptr_write_set = ref ISet.empty in
@@ -445,24 +445,38 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
         let fun_info = IMap.find ptr.pointed.index fun_infos in
         if fun_info.use_env then ptr_read (get_accu_id ind);
         for i = 0 to narg - 1 do
-          if fun_info.ptr_args.(i) then ptr_read (get_stack_id ind i)
-          else int_read (get_stack_id ind i)
+          let arg_id = get_stack_id ind i in
+          match fun_info.ptr_args.(i) with
+            | Integer -> int_read arg_id; force_int arg_id;
+            | Unknown -> int_read arg_id;
+            | Allocated -> ptr_read arg_id;
         done;
-        if fun_info.ptr_res then ptr_write (get_accu_id (ind + 1))
-        else int_write (get_accu_id (ind + 1));
+        let res_id = get_accu_id (ind + 1) in
+        begin match fun_info.ptr_res with
+          | Integer -> int_write res_id; force_int res_id;
+          | Unknown -> int_write res_id;
+          | Allocated -> ptr_write res_id;
+        end;
       | DynamicAppterm (narg, _) | PartialAppterm (narg, _)
       | SpecialAppterm (narg, _) ->
         ptr_read (get_accu_id ind);
         for i = 0 to narg - 1 do ptr_read (get_stack_id ind i) done;
-        return_ptr := true;
+        if !return_ptr <> Integer then return_ptr := Allocated;
       | StaticAppterm (narg, _, ptr) ->
         let fun_info = IMap.find ptr.pointed.index fun_infos in
         if fun_info.use_env then ptr_read (get_accu_id ind);
         for i = 0 to narg - 1 do
-          if fun_info.ptr_args.(i) then ptr_read (get_stack_id ind i)
-          else int_read (get_stack_id ind i)
+          let arg_id = get_stack_id ind i in
+          match fun_info.ptr_args.(i) with
+            | Integer -> int_read arg_id; force_int arg_id;
+            | Unknown -> int_read arg_id;
+            | Allocated -> ptr_read arg_id;
         done;
-        if fun_info.ptr_res then return_ptr := true;
+        begin match fun_info.ptr_res with
+          | Integer -> return_ptr := Integer;
+          | Unknown -> ();
+          | Allocated -> if !return_ptr <> Integer then return_ptr := Allocated;
+        end;
       | Return _ ->
         return (get_accu_id ind);
         ptr_read (get_accu_id ind);
@@ -564,6 +578,9 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
       | Poptrap ->
         ();
       | Const _ ->
+        (* WARNING: let p = if _ then Some _ else None in _
+           => DO NOT UNCOMMENT THIS:
+           force_int (get_accu_id (ind + 1)); *)
         int_write (get_accu_id (ind + 1));
       | Unapp Vectlength ->
         ptr_read (get_accu_id ind);
@@ -616,8 +633,9 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
       | Branch _ ->
         ();
       | CondBranch _ ->
-          (* WARNING: do not enable this:
-             force_int (get_accu_id ind); *)
+        (* WARNING: if x = None then _
+           => DO NOT UNCOMMENT THIS:
+           force_int (get_accu_id ind); *)
         int_read (get_accu_id ind);
       | Switch (_, size_tag, _) ->
         if size_tag = 0 then int_read (get_accu_id ind)
@@ -731,13 +749,21 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
                  (ISet.union (ISet.inter !gc_read cell_set) arg_set)) !int_set
   in
   let ptr_res =
-    ISet.iter
-      (fun id -> if ISet.mem id !ptr_write_set then return_ptr := true)
-      !return_set;
-    !return_ptr
+    if !return_ptr = Integer then Integer else (
+      ISet.iter
+        (fun id -> if ISet.mem id !int_set then return_ptr := Integer)
+        !return_set;
+      if !return_ptr = Integer then Integer else (
+        ISet.iter
+          (fun id ->
+            if ISet.mem id !ptr_write_set then return_ptr := Allocated)
+          !return_set;
+        !return_ptr
+      )
+    )
   in
   (* Remark: if id is not read then id is not a pointer or not a variable. *)
-  (ptr_set, read_set, ptr_res, read_args, use_env, ofs_clo, env_set)
+  (ptr_set, !int_set, read_set, ptr_res, read_args, use_env, ofs_clo, env_set)
 ;;
 
 let extract_constants prims funs =
@@ -771,8 +797,8 @@ let extract_constants prims funs =
               (env_usages, IMap.add base_fun_id env_usages shared_envs)
       in
       let fun_info = {
-        ptr_args   = Array.make fun_desc.arity false;
-        ptr_res    = false;
+        ptr_args   = Array.make fun_desc.arity Unknown;
+        ptr_res    = Unknown;
         run_gc     = false;
         use_env    = false;
         ofs_clo    = false;
@@ -787,18 +813,29 @@ let extract_constants prims funs =
     let (gc_read, r_gc) =
       compute_gc_read prims fun_desc.body states fun_infos
     in
-    let (ptr_set, read_set, p_res, read_args, u_env, ofs_clo, env_set) =
+    let (ptr_set,int_set,read_set,p_res,read_args,u_env,ofs_clo,env_set) =
       compute_ptrs prims fun_desc.body fun_desc.env_desc states idvd_map
         gc_read fun_infos
     in
     let fun_info = IMap.find id fun_infos in
     let new_flag = ref flag in
     for i = 0 to fun_desc.arity - 1 do
-      if ISet.mem arg_ids.(i) ptr_set && not fun_info.ptr_args.(i) then (
-        fun_info.ptr_args.(i) <- true;
+      if ISet.mem arg_ids.(i) ptr_set && fun_info.ptr_args.(i) = Unknown then (
+        fun_info.ptr_args.(i) <- Allocated;
         new_flag := true;
+      ) else if
+        ISet.mem arg_ids.(i) int_set && fun_info.ptr_args.(i) <> Integer then (
+          fun_info.ptr_args.(i) <- Integer;
+          new_flag := true;
       );
     done;
+    if p_res = Allocated && fun_info.ptr_res = Unknown then (
+      fun_info.ptr_res <- Allocated;
+      new_flag := true;
+    ) else if p_res = Integer && fun_info.ptr_res <> Integer then (
+      fun_info.ptr_res <- Integer;
+      new_flag := true;
+    );
     ISet.iter (fun i ->
       assert (i >= 0 && i < Array.length fun_info.env_usages);
       if not fun_info.env_usages.(i) then (
@@ -808,10 +845,6 @@ let extract_constants prims funs =
     ) env_set;
     if ofs_clo && not fun_info.ofs_clo then (
       fun_info.ofs_clo <- true;
-      new_flag := true;
-    );
-    if p_res && not fun_info.ptr_res then (
-      fun_info.ptr_res <- true;
       new_flag := true;
     );
     if r_gc && not fun_info.run_gc then (
