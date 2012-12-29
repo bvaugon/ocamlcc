@@ -203,12 +203,12 @@ type val_desc =
   | VCell                   (* Cells                                  *)
 
 type fun_info = {
-  ptr_args : alloc array;  (* Function arguments may be pointers         *)
-  mutable ptr_res : alloc; (* Function result may be a pointer           *)
-  mutable run_gc  : bool;  (* Function call may run the GC               *)
-  mutable use_env : bool;  (* Function body may use its environment      *)
-  mutable ofs_clo : bool;  (* Usage of the closure (rec call)            *)
-  env_usages : bool array; (* Usage of function environment cells        *)
+  ptr_args : alloc array;   (* Function arguments may be pointers     *)
+  mutable ptr_res : alloc;  (* Function result may be a pointer       *)
+  mutable run_gc  : bool;   (* Function call may run the GC           *)
+  mutable use_env : bool;   (* Function body may use its environment  *)
+  mutable ofs_clo : bool;   (* Usage of the closure (rec call)        *)
+  env_usages : alloc array; (* Usage of function environment cells    *)
 }
 
 type ids_info = {

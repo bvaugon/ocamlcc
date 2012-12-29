@@ -222,7 +222,7 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
       | ERec (_, ofs, _) -> n - 3 * ofs
     in
     let rec f i new_env_index =
-      if env_usages.(i) then
+      if env_usages.(i) <> Unknown then
         if i = orig_env_index then new_env_index
         else f (i + 1) new_env_index
       else
@@ -493,14 +493,15 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
             (IMap.find ptr.pointed.index fun_infos).env_usages
           in
           let new_closure_size =
-            let count i b = if b then i else i + 1 in
+            let count i b = if b <> Unknown then i else i + 1 in
             2 + env_size - Array.fold_left count 0 ptr_env_usages
           in
           let accu_id = get_accu_id ind in
           let index = ptr.pointed.index in
           let arity = (IMap.find index funs).arity in
           let frame_sz = compute_frame_size ind in
-          if env_size > 0 && is_cell accu_id && ptr_env_usages.(0) then
+          if env_size > 0 && is_cell accu_id && ptr_env_usages.(0) <> Unknown
+          then
             putm (MAKE_SAVED_YOUNG_BLOCK (
               export_cell accu_id, new_closure_size, closure_tag, LTmp,
               frame_sz))
@@ -512,13 +513,13 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
           putm (SET_YOUNG_FIELD (1, ELvalue LTmp, export_constint arity));
           let env_pos = ref 2 in
           if env_size > 0 then
-            if ptr_env_usages.(0) then (
+            if ptr_env_usages.(0) <> Unknown then (
               putm (SET_YOUNG_FIELD (!env_pos, ELvalue LTmp,
                                      export_val_desc accu_id));
               incr env_pos;
             );
           for i = 1 to env_size - 1 do
-            if ptr_env_usages.(i) then (
+            if ptr_env_usages.(i) <> Unknown then (
               let stk_id = get_stack_id ind (i - 1) in
               putm (SET_YOUNG_FIELD (!env_pos, ELvalue LTmp,
                                      export_val_desc stk_id));
@@ -543,13 +544,14 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
           let index = ptr.pointed.index in
           let ptr_env_usages = (IMap.find index fun_infos).env_usages in
           let new_closure_size =
-            let count i b = if b then i else i + 1 in
+            let count i b = if b <> Unknown then i else i + 1 in
             3 * fun_nb + env_size - 1 - Array.fold_left count 0 ptr_env_usages
           in
           let accu_id = get_accu_id ind in
           let arity = (IMap.find index funs).arity in
           let frame_sz = compute_frame_size ind in
-          if env_size > 0 && is_cell accu_id && ptr_env_usages.(0) then
+          if env_size > 0 && is_cell accu_id && ptr_env_usages.(0) <> Unknown
+          then
             putm (MAKE_SAVED_YOUNG_BLOCK (export_cell accu_id,
                                           new_closure_size,
                                           closure_tag, LTmp, frame_sz))
@@ -572,13 +574,13 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
           done;
           let env_pos = ref (3 * fun_nb - 1) in
           if env_size > 0 then
-            if ptr_env_usages.(0) then (
+            if ptr_env_usages.(0) <> Unknown then (
               putm (SET_YOUNG_FIELD (!env_pos, ELvalue LTmp,
                                      export_val_desc accu_id));
               incr env_pos;
             );
           for i = 1 to env_size - 1 do
-            if ptr_env_usages.(i) then (
+            if ptr_env_usages.(i) <> Unknown then (
               let stk_id = get_stack_id ind (i - 1) in
               putm (SET_YOUNG_FIELD (!env_pos, ELvalue LTmp,
                                      export_val_desc stk_id));

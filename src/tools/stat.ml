@@ -129,13 +129,14 @@ let xconst_fun_infos oc fun_infos =
     incr fun_nb;
     arg_nb := !arg_nb + Array.length fun_info.ptr_args;
     Array.iter (function
-      | Integer -> incr int_arg_nb
-      | Unknown -> ()
-      | Allocated -> incr ptr_arg_nb) fun_info.ptr_args;
+      | Integer -> incr int_arg_nb;
+      | Unknown -> ();
+      | Allocated -> incr ptr_arg_nb;
+    ) fun_info.ptr_args;
     begin match fun_info.ptr_res with
-      | Integer -> incr int_res_nb
-      | Unknown -> ()
-      | Allocated -> incr ptr_res_nb
+      | Integer -> incr int_res_nb;
+      | Unknown -> ();
+      | Allocated -> incr ptr_res_nb;
     end;
     if fun_info.run_gc then incr run_gc_nb;
   in
@@ -161,20 +162,26 @@ let environments oc fun_infos =
   let fun_nb = ref 0 in
   let env_tot = ref 0 in
   let env_used = ref 0 in
+  let env_ints = ref 0 in
   let f _ fun_info =
     let env_usages = fun_info.env_usages in
     incr fun_nb;
     env_tot := Array.length env_usages + !env_tot;
-    Array.iter (fun b -> if b then incr env_used) env_usages;
+    Array.iter (function
+      | Integer -> incr env_ints; incr env_used;
+      | Unknown -> ();
+      | Allocated -> incr env_used;
+    ) env_usages;
   in
   IMap.iter f (IMap.remove 0 fun_infos);
   Printf.fprintf oc "\n\
 \                       -> %6d functions\n\
 \n\
 Environment avg size   ->     %5.2f\n\
+Environment integers   ->     %5.2f%%\n\
 Environment usage      ->     %5.2f%%\n\n"
     !fun_nb (float_of_int !env_tot /. float_of_int !fun_nb)
-    (percentage !env_used !env_tot)
+    (percentage !env_ints !env_tot) (percentage !env_used !env_tot)
 ;;
 
 let xconst_ids oc ids_infos =

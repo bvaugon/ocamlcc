@@ -484,9 +484,17 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
         let accu = get_accu_id (ind + 1) in
         let env_usages = (IMap.find ptr.pointed.index fun_infos).env_usages in
         if nv <> 0 then (
-          if env_usages.(0) then depend (get_accu_id ind) accu;
+          begin let id = get_accu_id ind in match env_usages.(0) with
+            | Integer -> force_int id; depend id accu;
+            | Unknown -> ();
+            | Allocated -> depend id accu;
+          end;
           for i = 0 to nv - 2 do
-            if env_usages.(i + 1) then depend (get_stack_id ind i) accu;
+            let id = get_stack_id ind i in
+            match env_usages.(i + 1) with
+              | Integer -> force_int id; depend id accu;
+              | Unknown -> ();
+              | Allocated -> depend id accu;
           done;
         );
         ptr_write accu;
@@ -502,9 +510,17 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
         in
         let env_usages = (IMap.find ptr.pointed.index fun_infos).env_usages in
         if env_size <> 0 then (
-          if env_usages.(0) then depend_all (get_accu_id ind);
+          begin let id = get_accu_id ind in match env_usages.(0) with
+            | Integer -> force_int id; depend_all id;
+            | Unknown -> ();
+            | Allocated -> depend_all id;
+          end;
           for i = 0 to env_size - 2 do
-            if env_usages.(i + 1) then depend_all (get_stack_id ind i);
+            let id = get_stack_id ind i in
+            match env_usages.(i + 1) with
+              | Integer -> force_int id; depend_all id;
+              | Unknown -> ();
+              | Allocated -> depend_all id;
           done;
         );
         ptr_write accu;
@@ -708,22 +724,31 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
     List.exists (fun id -> ISet.mem id full_read_set) !ofsclsrs ||
       IMap.fold f idvd_map false
   in
-  let env_set =
-    let f id vd evs_acc = match vd with
+  let (env_set, env_ints) =
+    let f id vd ((evs_acc, evi_acc) as acc) = match vd with
       | VEnv n ->
         if ISet.mem id full_read_set then
-          match env_desc with
-            | ENone -> assert false
-            | ENonRec _ -> ISet.add n evs_acc
-            | ERec (_, ofs, _) -> ISet.add (n - 3 * ofs) evs_acc
+          let ind =
+            match env_desc with
+              | ENone -> assert false
+              | ENonRec _ -> n
+              | ERec (_, ofs, _) -> n - 3 * ofs
+          in
+          (ISet.add ind evs_acc,
+           if ISet.mem id !int_set then ISet.add ind evi_acc else evi_acc)
         else
-          evs_acc
-      | _ -> evs_acc
+          acc
+      | _ ->
+        acc
     in
-    let g acc (id, n) =
-      if ISet.mem id full_read_set then ISet.add n acc else acc
+    let g ((evs_acc, evi_acc) as acc) (id, n) =
+      if ISet.mem id full_read_set then
+        (ISet.add n evs_acc,
+         if ISet.mem id !int_set then ISet.add n evi_acc else evi_acc)
+      else
+        acc
     in
-    IMap.fold f idvd_map (List.fold_left g ISet.empty !envaccs)
+    IMap.fold f idvd_map (List.fold_left g (ISet.empty, ISet.empty) !envaccs)
   in
   let use_env = ofs_clo || not (ISet.is_empty env_set) in
   let read_set = ISet.inter full_read_set cell_set in
@@ -763,7 +788,8 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
     )
   in
   (* Remark: if id is not read then id is not a pointer or not a variable. *)
-  (ptr_set, !int_set, read_set, ptr_res, read_args, use_env, ofs_clo, env_set)
+  (ptr_set, !int_set, read_set, ptr_res, read_args, use_env, ofs_clo, env_set,
+   env_ints)
 ;;
 
 let extract_constants prims funs =
@@ -789,11 +815,11 @@ let extract_constants prims funs =
       let (env_usages, new_shared_envs) =
         match fun_desc.env_desc with
           | ENone -> ([||], shared_envs)
-          | ENonRec env_size -> (Array.make env_size false, shared_envs)
+          | ENonRec env_size -> (Array.make env_size Unknown, shared_envs)
           | ERec (env_size, _, base_fun_id) ->
             try (IMap.find base_fun_id shared_envs, shared_envs)
             with Not_found ->
-              let env_usages = Array.make env_size false in
+              let env_usages = Array.make env_size Unknown in
               (env_usages, IMap.add base_fun_id env_usages shared_envs)
       in
       let fun_info = {
@@ -813,7 +839,8 @@ let extract_constants prims funs =
     let (gc_read, r_gc) =
       compute_gc_read prims fun_desc.body states fun_infos
     in
-    let (ptr_set,int_set,read_set,p_res,read_args,u_env,ofs_clo,env_set) =
+    let (ptr_set, int_set, read_set, p_res, read_args, u_env, ofs_clo, env_set,
+         env_ints) =
       compute_ptrs prims fun_desc.body fun_desc.env_desc states idvd_map
         gc_read fun_infos
     in
@@ -838,8 +865,11 @@ let extract_constants prims funs =
     );
     ISet.iter (fun i ->
       assert (i >= 0 && i < Array.length fun_info.env_usages);
-      if not fun_info.env_usages.(i) then (
-        fun_info.env_usages.(i) <- true;
+      if ISet.mem i env_ints && fun_info.env_usages.(i) <> Integer then (
+        fun_info.env_usages.(i) <- Integer;
+        new_flag := true;
+      ) else if fun_info.env_usages.(i) = Unknown then (
+        fun_info.env_usages.(i) <- Allocated;
         new_flag := true;
       );
     ) env_set;
