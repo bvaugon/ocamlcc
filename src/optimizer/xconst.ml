@@ -373,7 +373,7 @@ let compute_gc_read prims body states fun_infos =
   (!gc_read, !run_gc)
 ;;
 
-let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
+let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
   let set_add set id = set := ISet.add id !set in
   let map_add map id1 id2 =
     try map := IMap.add id1 (ISet.add id2 (IMap.find id1 !map)) !map
@@ -695,9 +695,9 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
   end;
   Array.iteri f body;
   fix_moves (map_union !move_read_map !move_write_map) int_set;
-  fix_moves !move_read_map int_read_set;
   IMap.iter (fun t fs -> ISet.iter (fun f -> map_add move_read_map t f) fs)
     !depend_map;
+  fix_moves !move_read_map int_read_set;
   fix_moves !move_read_map ptr_read_set;
   fix_moves !move_write_map ptr_write_set;
   fix_moves !move_write_map int_write_set;
@@ -772,8 +772,12 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
     env_ints := ISet.empty;
   );
   let ptr_set =
-    ISet.diff (ISet.inter (ISet.inter !ptr_write_set !ptr_read_set)
-                 (ISet.union (ISet.inter !gc_read cell_set) arg_set)) !int_set
+    if run_gc then
+      ISet.diff (ISet.inter (ISet.inter !ptr_write_set !ptr_read_set)
+                   (ISet.union (ISet.inter !gc_read cell_set) arg_set)) !int_set
+    else
+      ISet.diff (ISet.inter (ISet.inter !ptr_write_set !ptr_read_set)
+                   (ISet.inter !gc_read cell_set)) !int_set
   in
   let ptr_res =
     if !return_ptr = Integer then Integer else (
@@ -790,8 +794,8 @@ let compute_ptrs prims body env_desc states idvd_map gc_read fun_infos =
     )
   in
   (* Remark: if id is not read then id is not a pointer or not a variable. *)
-  (ptr_set, !int_set, read_set, ptr_res, read_args, use_env, ofs_clo, env_set,
-   !env_ints)
+  (ptr_set, !int_set, read_set, !ptr_read_set, ptr_res, read_args, use_env,
+   ofs_clo, env_set, !env_ints)
 ;;
 
 let extract_constants prims funs =
@@ -841,19 +845,20 @@ let extract_constants prims funs =
     let (gc_read, r_gc) =
       compute_gc_read prims fun_desc.body states fun_infos
     in
-    let (ptr_set, int_set, read_set, p_res, read_args, u_env, ofs_clo, env_set,
-         env_ints) =
+    let (ptr_set, int_set, read_set, ptr_read_set, p_res, read_args, u_env,
+         ofs_clo, env_set, env_ints) =
       compute_ptrs prims fun_desc.body fun_desc.env_desc states idvd_map
-        gc_read fun_infos
+        gc_read r_gc fun_infos
     in
     let fun_info = IMap.find id fun_infos in
     let new_flag = ref flag in
     for i = 0 to fun_desc.arity - 1 do
-      if ISet.mem arg_ids.(i) ptr_set && fun_info.ptr_args.(i) = Unknown then (
+      if ISet.mem arg_ids.(i) ptr_read_set && fun_info.ptr_args.(i) = Unknown
+      then (
         fun_info.ptr_args.(i) <- Allocated;
         new_flag := true;
-      ) else if
-        ISet.mem arg_ids.(i) int_set && fun_info.ptr_args.(i) <> Integer then (
+      ) else if ISet.mem arg_ids.(i) int_set && fun_info.ptr_args.(i) <> Integer
+        then (
           fun_info.ptr_args.(i) <- Integer;
           new_flag := true;
       );
