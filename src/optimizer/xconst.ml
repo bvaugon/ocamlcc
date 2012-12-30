@@ -216,6 +216,31 @@ let compute_ids arity body =
   (states, !equivs, !copies, !idvd_map)
 ;;
 
+(***)
+
+let fix_arg_ids states idvd_map =
+  let of_id id = match IMap.find id idvd_map with
+    | VArg n -> -n - 1
+    | _ -> id
+  in
+  let of_state { accu = accu ; stack = stack } =
+    { accu = of_id accu ; stack = Stk.map of_id stack }
+  in
+  let of_state_opt state_opt = match state_opt with
+    | None -> None
+    | Some state -> Some (of_state state)
+  in
+  let states' = Array.map of_state_opt states in
+  let f id vd acc = match vd with
+    | VArg n -> IMap.add (-n - 1) vd acc
+    | _ -> IMap.add id vd acc
+  in
+  let idvd_map' = IMap.fold f idvd_map IMap.empty in
+  (states', idvd_map')
+;;
+
+(***)
+
 let unify_ids states equivs copies idvd_map =
   (* eqset_map: id -> the id equivalence class *)
   let eqset_map =
@@ -296,11 +321,13 @@ let unify_ids states equivs copies idvd_map =
     in
     Array.map map_state_opt states
   in
-  (states', idvd_map''')
+  fix_arg_ids states' idvd_map'''
 ;;
 
+(***)
+
 let compute_gc_read prims body states fun_infos =
-  let gc_read = ref ISet.empty in
+  let gc_read = Hashtbl.create 16 in
   let run_gc = ref false in
   let f ind instr =
     match instr.bc with
@@ -309,9 +336,8 @@ let compute_gc_read prims body states fun_infos =
         begin match (states.(ind), states.(ind + 1)) with
           | (Some { accu = accu ; stack = _ },
              Some { accu = _ ; stack = stack }) ->
-            gc_read :=
-              Stk.fold_left (fun acc id -> ISet.add id acc)
-              (ISet.add accu !gc_read) stack
+            Hashtbl.add gc_read accu ind;
+            Stk.iter (fun id -> Hashtbl.add gc_read id ind) stack;
           | _ -> ()
         end;
       | StaticApply (_, ptr) ->
@@ -321,10 +347,8 @@ let compute_gc_read prims body states fun_infos =
           match (states.(ind), states.(ind + 1)) with
             | (Some { accu = accu ; stack = _ },
                Some { accu = _ ; stack = stack }) ->
-              gc_read :=
-                Stk.fold_left (fun acc id -> ISet.add id acc)
-                (if fun_info.use_env then ISet.add accu !gc_read
-                 else !gc_read) stack
+              if fun_info.use_env then Hashtbl.add gc_read accu ind;
+              Stk.iter (fun id -> Hashtbl.add gc_read id ind) stack;
             | _ -> ()
         );
       | DynamicAppterm (_, _) | PartialAppterm (_, _)
@@ -338,9 +362,8 @@ let compute_gc_read prims body states fun_infos =
         run_gc := true;
         begin match states.(ind) with
           | Some { accu = accu ; stack = stack } ->
-            gc_read :=
-              Stk.fold_left (fun acc id -> ISet.add id acc)
-              (ISet.add accu !gc_read) stack
+            Hashtbl.add gc_read accu ind;
+            Stk.iter (fun id -> Hashtbl.add gc_read id ind) stack;
           | None -> ()
         end;
       | Ccall (_, index) ->
@@ -353,27 +376,86 @@ let compute_gc_read prims body states fun_infos =
           run_gc := true;
           match states.(ind) with
             | Some { accu = accu ; stack = stack } ->
-              gc_read :=
-                Stk.fold_left (fun acc id -> ISet.add id acc)
-                (ISet.add accu !gc_read) stack
+              Hashtbl.add gc_read accu ind;
+              Stk.iter (fun id -> Hashtbl.add gc_read id ind) stack;
             | None -> ()
         );
       | Checksignals | Poptrap when !Options.sigconf = Reactive ->
         run_gc := true;
         begin match states.(ind) with
           | Some { accu = accu ; stack = stack } ->
-            gc_read :=
-              Stk.fold_left (fun acc id -> ISet.add id acc)
-              (ISet.add accu !gc_read) stack
+            Hashtbl.add gc_read accu ind;
+            Stk.iter (fun id -> Hashtbl.add gc_read id ind) stack;
           | None -> ()
         end;
       | _ -> ()
   in
   Array.iteri f body;
-  (!gc_read, !run_gc)
+  (gc_read, !run_gc)
 ;;
 
+(***)
+
+let mem_instr_preds = Hashtbl.create 10000;;
+
+let compute_instr_preds body =
+  try Hashtbl.find mem_instr_preds body with Not_found ->
+  let nb_instr = Array.length body in
+  let instr_nexts = Array.map Body.compute_nexts body in
+  let instr_preds =
+    Array.init nb_instr (fun _ -> String.make ((nb_instr lsr 3) + 1) '\000')
+  in
+  let set s i =
+    let mask = 1 lsl (i land 0b111) in
+    let ind = i lsr 3 in
+    let n = int_of_char s.[ind] in
+    if n land mask <> 0 then false else (
+      s.[ind] <- char_of_int (n lor mask);
+      true
+    )
+  in
+  let set_list s l = List.fold_left (fun b i -> set s i || b) false l in
+  let rec interp traps l i =
+    assert (i >= 0 && i < nb_instr);
+    if set_list instr_preds.(i) l || i = 0 then
+      let (new_traps, nexts) =
+        match body.(i).bc with
+          | Pushtrap ptr ->
+            (ptr :: traps, [ i + 1 ])
+          | Poptrap -> (
+            match traps with
+              | [] -> assert false
+              | ptr :: rest -> (rest, [ i + 1 ; ptr.pointed.index ])
+          )
+          | _ -> (
+            match (instr_nexts.(i), traps) with
+              | (_ :: _, _) | (_, []) -> (traps, instr_nexts.(i))
+              | ([], ptr :: rest) -> (rest, [ ptr.pointed.index ])
+          )
+      in
+      List.iter (interp new_traps (i :: l)) nexts;
+  in
+  interp [] [ 0 ] 0;
+  Hashtbl.add mem_instr_preds body instr_preds;
+  instr_preds
+;;
+
+let is_predecessor x instr_preds y =
+  let nb_instr = Array.length instr_preds in
+  assert (x >= 0 && x < nb_instr);
+  assert (y >= 0 && y < nb_instr);
+  x = y ||
+      let s = instr_preds.(y) in
+      let ind = x lsr 3 in
+      let mask = 1 lsl (x land 0b111) in
+      int_of_char s.[ind] land mask <> 0
+;;
+
+(***)
+
 let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
+  let instr_preds = compute_instr_preds body in
+  let read_tbl = Hashtbl.create 16 in
   let set_add set id = set := ISet.add id !set in
   let map_add map id1 id2 =
     try map := IMap.add id1 (ISet.add id2 (IMap.find id1 !map)) !map
@@ -418,6 +500,18 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
   in
   let depend from_id to_id = map_add depend_map to_id from_id in
   let f ind instr =
+    let ptr_read id =
+      ptr_read id;
+      Hashtbl.add read_tbl id ind;
+    in
+    let move from_id to_id =
+      move from_id to_id;
+      Hashtbl.add read_tbl from_id ind;
+    in
+    let depend from_id to_id =
+      depend from_id to_id;
+      Hashtbl.add read_tbl from_id ind;
+    in
     try match instr.bc with
       | Acc n ->
         move (get_stack_id ind n) (get_accu_id (ind + 1));
@@ -453,7 +547,7 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
         done;
         let res_id = get_accu_id (ind + 1) in
         begin match fun_info.ptr_res with
-          | Integer -> int_write res_id; force_int res_id;
+          | Integer -> int_write res_id; (* force_int res_id; *)
           | Unknown -> int_write res_id;
           | Allocated -> ptr_write res_id;
         end;
@@ -601,13 +695,16 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
       | Unapp Vectlength ->
         ptr_read (get_accu_id ind);
         int_write (get_accu_id (ind + 1));
+        (* force_int (get_accu_id (ind + 1)); *)
       | Unapp Isint ->
         int_read (get_accu_id ind);
         int_write (get_accu_id (ind + 1));
+        (* force_int (get_accu_id (ind + 1)); *)
       | Unapp (Boolnot | Offsetint _ | Negint) ->
         force_int (get_accu_id ind);
         int_read (get_accu_id ind);
         int_write (get_accu_id (ind + 1));
+        (* force_int (get_accu_id (ind + 1)); *)
       | Offsetref _ ->
         ptr_read (get_accu_id ind);
         int_write (get_accu_id (ind + 1));
@@ -619,6 +716,7 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
         int_read (get_accu_id ind);
         int_read (get_stack_id ind 0);
         int_write (get_accu_id (ind + 1));
+        (* force_int (get_accu_id (ind + 1)); *)
       | Binapp (Eq | Neq) ->
         ptr_read (get_accu_id ind);
         ptr_read (get_stack_id ind 0);
@@ -633,12 +731,14 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
         ptr_read (get_accu_id ind);
         int_read (get_stack_id ind 0);
         int_write (get_accu_id (ind + 1));
+        (* force_int (get_accu_id (ind + 1)); *)
       | Setvectitem ->
         force_int (get_stack_id ind 0);
         ptr_read (get_accu_id ind);
         int_read (get_stack_id ind 0);
         ptr_read (get_stack_id ind 1);
         int_write (get_accu_id (ind + 1));
+        (* force_int (get_accu_id (ind + 1)); *)
       | Setstringchar ->
         force_int (get_stack_id ind 0);
         force_int (get_stack_id ind 1);
@@ -646,6 +746,7 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
         int_read (get_stack_id ind 0);
         int_read (get_stack_id ind 1);
         int_write (get_accu_id (ind + 1));
+        (* force_int (get_accu_id (ind + 1)); *)
       | Branch _ ->
         ();
       | CondBranch _ ->
@@ -763,21 +864,31 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
           acc
       ) arg_set ISet.empty
   in
-  let gc_read = ref gc_read in
+  let gc_read_set =
+    let f id gc_ind gc_read_acc =
+      let read_inds = Hashtbl.find_all read_tbl id in
+      if List.exists (is_predecessor gc_ind instr_preds) read_inds then
+        ISet.add id gc_read_acc
+      else
+        gc_read_acc
+    in
+    Hashtbl.fold f gc_read ISet.empty
+  in
+  let gc_read_set = ref gc_read_set in
   let env_ints = ref env_ints in
   if !Options.no_xconst then (
     ISet.iter (fun id -> ptr_read id; ptr_write id; int_read id; int_write id;
-                 gc_read := ISet.add id !gc_read) cell_set;
+                 gc_read_set := ISet.add id !gc_read_set) cell_set;
     int_set := ISet.empty;
     env_ints := ISet.empty;
   );
   let ptr_set =
     if run_gc then
       ISet.diff (ISet.inter (ISet.inter !ptr_write_set !ptr_read_set)
-                   (ISet.union (ISet.inter !gc_read cell_set) arg_set)) !int_set
+                   (ISet.union (ISet.inter !gc_read_set cell_set) arg_set)) !int_set
     else
       ISet.diff (ISet.inter (ISet.inter !ptr_write_set !ptr_read_set)
-                   (ISet.inter !gc_read cell_set)) !int_set
+                   (ISet.inter !gc_read_set cell_set)) !int_set
   in
   let ptr_res =
     if !return_ptr = Integer then Integer else (
@@ -797,6 +908,8 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
   (ptr_set, !int_set, read_set, !ptr_read_set, ptr_res, read_args, use_env,
    ofs_clo, env_set, !env_ints)
 ;;
+
+(***)
 
 let extract_constants prims funs =
   let () = Options.verb_start "+ Computing cell types" in
@@ -853,21 +966,22 @@ let extract_constants prims funs =
     let fun_info = IMap.find id fun_infos in
     let new_flag = ref flag in
     for i = 0 to fun_desc.arity - 1 do
-      if ISet.mem arg_ids.(i) ptr_read_set && fun_info.ptr_args.(i) = Unknown
+      if ISet.mem arg_ids.(i) int_set && fun_info.ptr_args.(i) <> Integer
       then (
-        fun_info.ptr_args.(i) <- Allocated;
+        fun_info.ptr_args.(i) <- Integer;
         new_flag := true;
-      ) else if ISet.mem arg_ids.(i) int_set && fun_info.ptr_args.(i) <> Integer
+      ) else
+        if ISet.mem arg_ids.(i) ptr_read_set && fun_info.ptr_args.(i) = Unknown
         then (
-          fun_info.ptr_args.(i) <- Integer;
+          fun_info.ptr_args.(i) <- Allocated;
           new_flag := true;
       );
     done;
-    if p_res = Allocated && fun_info.ptr_res = Unknown then (
-      fun_info.ptr_res <- Allocated;
-      new_flag := true;
-    ) else if p_res = Integer && fun_info.ptr_res <> Integer then (
+    if p_res = Integer && fun_info.ptr_res <> Integer then (
       fun_info.ptr_res <- Integer;
+      new_flag := true;
+    ) else if p_res = Allocated && fun_info.ptr_res = Unknown then (
+      fun_info.ptr_res <- Allocated;
       new_flag := true;
     );
     ISet.iter (fun i ->

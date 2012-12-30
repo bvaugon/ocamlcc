@@ -317,7 +317,8 @@ let print_ids_infos oc ids_infos =
     IMap.iter f idvd_map;
     Printf.fprintf oc "\n";
   in
-  let f _ ids_info =
+  let f fun_id ids_info =
+    Printf.fprintf oc "f%d:\n" fun_id;
     print_body_states oc ids_info.fun_desc.body ids_info.states
       ids_info.idvd_map;
     print_val_desc_map oc ids_info.idvd_map ids_info.ptr_set ids_info.read_set;

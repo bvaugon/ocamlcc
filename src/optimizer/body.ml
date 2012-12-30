@@ -115,7 +115,7 @@ let compute_nexts instr =
     | Getmethod | Getpubmet _ | Getdynmet ->
       [ instr.index + 1 ]
 
-    | Pushretaddr _ ->      (* Warning *)
+    | Pushretaddr _ ->    (* Warning *)
       [ instr.index + 1 ] (* Warning *)
 
     | Grab _ ->

@@ -34,7 +34,7 @@ let offset_counter = ref 0;;
 let (message, ofsmsg) =
   let print msg =
     if !verbose then (
-      Printf.eprintf "%s%!" msg;
+      Printf.printf "%s%!" msg;
       try offset_counter := String.length msg - String.rindex msg '\n' - 1;
       with Not_found -> offset_counter := String.length msg + !offset_counter
     );
@@ -43,7 +43,7 @@ let (message, ofsmsg) =
   let ofsmsg ofs =
     if !verbose then
       let sz = ofs - !offset_counter in
-      if sz > 0 then prerr_string (String.make sz ' ');
+      if sz > 0 then print_string (String.make sz ' ');
   in
   (message, ofsmsg)
 ;;

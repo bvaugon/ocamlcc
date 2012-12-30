@@ -145,11 +145,14 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
   let cfun_arity = if use_env then fun_desc.arity + 1 else fun_desc.arity in
   let is_read id = ISet.mem id read_set in
   let is_ptr id = ISet.mem id ptr_set in
-  let is_cell id = IMap.find id idvd_map = VCell in
-  let is_arg id =
-    match IMap.find id idvd_map with
-      | VArg _ -> true
-      | _ -> false
+  let is_cell id = match IMap.find id idvd_map with
+    | VCell -> assert (id >= 0); true
+    | VArg n -> assert (id = -n - 1); false
+    | _ -> assert (id >= 0); false
+  in
+  let is_arg id = match IMap.find id idvd_map with
+    | VArg n -> assert (id = -n - 1); true
+    | _ -> assert (id >= 0); false
   in
   let use_tmp = ref false in
   let (args_ofs, arg_depths) =
