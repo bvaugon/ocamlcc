@@ -76,7 +76,7 @@ let compute_fun_def fun_desc use_env locals body location = {
   fdf_special   = if fun_desc.is_special then Some fun_desc.fun_id else None;
 };;
 
-let compute_fun_locals arity var_nb use_tmp arg_depths read_args =
+let compute_fun_locals arity var_nb use_tmp use_env run_gc arg_depths read_args=
   let gen_var c i = { vd_type = TValue; vd_name = Printf.sprintf "%c%d" c i } in
   let params =
     match !Options.arch with
@@ -96,14 +96,23 @@ let compute_fun_locals arity var_nb use_tmp arg_depths read_args =
     f (var_nb - 1) []
   in
   let tmp = if use_tmp then [ { vd_type = TValue; vd_name = "tmp" } ] else [] in
-  params @ vars @ tmp
+  let env =
+    if use_env && not run_gc && !Options.arch = None_arch then
+      [ { vd_type = TValue; vd_name = "env" } ]
+    else
+      []
+  in
+  params @ vars @ tmp @ env
 ;;
 
-let compute_fun_init puti use_env arity arg_depths read_args =
+let compute_fun_init puti use_env run_gc arity arg_depths read_args =
   match !Options.arch with
     | None_arch ->
       if use_env then
-        puti (IAffect (LAcc (-1, 0), ELvalue (LGlobal "ocamlcc_global_env")));
+        if run_gc then
+          puti (IAffect (LAcc (-1, 0), ELvalue (LGlobal "ocamlcc_global_env")))
+        else
+          puti (IAffect (LEnv, ELvalue (LGlobal "ocamlcc_global_env")));
       for i = 0 to arity - 1 do
         try
           let ofs = IMap.find i arg_depths in
@@ -118,7 +127,7 @@ let compute_fun_init puti use_env arity arg_depths read_args =
             puti (IAffect (LParam i, ELvalue c))
       done
     | Gen_arch | X86 | X86_64 ->
-      if use_env then puti (IAffect (LAcc (-1, 0), ELvalue LEnv));
+      if use_env && run_gc then puti (IAffect (LAcc (-1, 0), ELvalue LEnv));
       for i = 0 to arity - 1 do
         try
           let ofs = IMap.find i arg_depths in
@@ -140,7 +149,9 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
   let puti instr = instrs := instr :: !instrs in
   let putm macro = puti (IMacro macro) in
   let catch_list = ref [] in
-  let env_usages = (IMap.find fun_id fun_infos).env_usages in
+  let this_fun_info = IMap.find fun_id fun_infos in
+  let env_usages = this_fun_info.env_usages in
+  let run_gc = this_fun_info.run_gc in
   let use_env = Body.test_useenv fun_infos fun_desc in
   let cfun_arity = if use_env then fun_desc.arity + 1 else fun_desc.arity in
   let is_read id = ISet.mem id read_set in
@@ -163,7 +174,7 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
     match states.(0) with
       | None -> assert false
       | Some state ->
-        let init_pdepth = if use_env then 2 else 1 in
+        let init_pdepth = if use_env && run_gc then 2 else 1 in
         let (_, depth, map) =
           Stk.fold_left f (0, init_pdepth, IMap.empty) state.stack
         in
@@ -216,7 +227,8 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
   let export_glob_field (n, p) = EGlobField (n, p) in
   let export_atom tag = EAtom tag in
   let export_clsr ?(offset=0) ofs =
-    EOffset (ELvalue (LAcc (-1, offset)), ofs * 3 / 2)
+    let lenv = if run_gc then LAcc (-1, offset) else LEnv in
+    EOffset (ELvalue lenv, ofs * 3 / 2)
   in
   let export_envacc ?(offset=0) n =
     let orig_env_index = match fun_desc.env_desc with
@@ -231,7 +243,8 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
       else
         f (i + 1) (new_env_index - 1)
     in
-    EField (ELvalue (LAcc (-1, offset)), f 0 n + 2)
+    let lenv = if run_gc then LAcc (-1, offset) else LEnv in
+    EField (ELvalue lenv, f 0 n + 2)
   in
   let export_arg ?(offset=0) n =
     try ELvalue (LAcc (-(IMap.find n arg_depths), offset))
@@ -878,13 +891,14 @@ let compute_fun prims dbug funs fun_infos tc_set fun_id {
   let location = compute_location funs dbug fun_id in
   let body =
     if !Options.trace && fun_id <> 0 then puti (ITrace (MLEnter fun_id));
-    compute_fun_init puti use_env fun_desc.arity arg_depths read_args;
+    compute_fun_init puti use_env run_gc fun_desc.arity arg_depths read_args;
     Array.iteri export_instr body;
     assert (!catch_list = []);
     List.rev !instrs
   in
   let locals =
-    compute_fun_locals fun_desc.arity var_nb !use_tmp arg_depths read_args
+    compute_fun_locals fun_desc.arity var_nb !use_tmp use_env run_gc
+      arg_depths read_args
   in
   compute_fun_def fun_desc use_env locals body location
 ;;
