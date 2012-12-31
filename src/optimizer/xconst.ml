@@ -547,7 +547,7 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
         done;
         let res_id = get_accu_id (ind + 1) in
         begin match fun_info.ptr_res with
-          | Integer -> int_write res_id; (* force_int res_id; *)
+          | Integer -> int_write res_id; force_int res_id;
           | Unknown -> int_write res_id;
           | Allocated -> ptr_write res_id;
         end;
@@ -688,39 +688,62 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
       | Poptrap ->
         ();
       | Const _ ->
-        (* WARNING: let p = if _ then Some _ else None in _
+        (* WARNING: booleans can't be considered as integers
+           Example: if b then Some 42 else None
            => DO NOT UNCOMMENT THIS:
            force_int (get_accu_id (ind + 1)); *)
         int_write (get_accu_id (ind + 1));
       | Unapp Vectlength ->
         ptr_read (get_accu_id ind);
         int_write (get_accu_id (ind + 1));
-        (* force_int (get_accu_id (ind + 1)); *)
+        force_int (get_accu_id (ind + 1));
       | Unapp Isint ->
         int_read (get_accu_id ind);
         int_write (get_accu_id (ind + 1));
-        (* force_int (get_accu_id (ind + 1)); *)
+        (* WARNING: booleans can't be considered as integers
+           Example: if b then Some 42 else None
+           => DO NOT UNCOMMENT THIS:
+           force_int (get_accu_id (ind + 1)); *)
       | Unapp (Boolnot | Offsetint _ | Negint) ->
-        force_int (get_accu_id ind);
+        (* WARNING: booleans can't be considered as integers
+           Example: if b then Some 42 else None
+           => DO NOT UNCOMMENT THIS:
+           force_int (get_accu_id ind); *)
         int_read (get_accu_id ind);
         int_write (get_accu_id (ind + 1));
-        (* force_int (get_accu_id (ind + 1)); *)
+        (* WARNING: booleans can't be considered as integers
+           Example: if b then Some 42 else None
+           => DO NOT UNCOMMENT THIS:
+           force_int (get_accu_id (ind + 1)); *)
       | Offsetref _ ->
         ptr_read (get_accu_id ind);
         int_write (get_accu_id (ind + 1));
       | Binapp (Addint | Subint | Mulint | Divint | Modint | Andint | Orint |
-          Xorint | Lslint | Lsrint | Asrint | Ltint | Leint | Gtint |
-              Geint | Ultint | Ugeint) ->
+          Xorint | Lslint | Lsrint | Asrint) ->
         force_int (get_accu_id ind);
         force_int (get_stack_id ind 0);
         int_read (get_accu_id ind);
         int_read (get_stack_id ind 0);
         int_write (get_accu_id (ind + 1));
-        (* force_int (get_accu_id (ind + 1)); *)
+        force_int (get_accu_id (ind + 1));
+      | Binapp (Ltint | Leint | Gtint | Geint | Ultint | Ugeint) ->
+        force_int (get_accu_id ind);
+        force_int (get_stack_id ind 0);
+        int_read (get_accu_id ind);
+        int_read (get_stack_id ind 0);
+        int_write (get_accu_id (ind + 1));
+        (* WARNING: booleans can't be considered as integers
+           Example: if b then Some 42 else None
+           => DO NOT UNCOMMENT THIS:
+           force_int (get_accu_id (ind + 1)); *)
       | Binapp (Eq | Neq) ->
         ptr_read (get_accu_id ind);
         ptr_read (get_stack_id ind 0);
         int_write (get_accu_id (ind + 1));
+        (* WARNING: booleans can't be considered as integers
+           Example: if b then Some 42 else None
+           => DO NOT UNCOMMENT THIS:
+           force_int (get_accu_id (ind + 1)); *)
       | Binapp Getvectitem ->
         force_int (get_stack_id ind 0);
         ptr_read (get_accu_id ind);
@@ -731,14 +754,14 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
         ptr_read (get_accu_id ind);
         int_read (get_stack_id ind 0);
         int_write (get_accu_id (ind + 1));
-        (* force_int (get_accu_id (ind + 1)); *)
+        force_int (get_accu_id (ind + 1));
       | Setvectitem ->
         force_int (get_stack_id ind 0);
         ptr_read (get_accu_id ind);
         int_read (get_stack_id ind 0);
         ptr_read (get_stack_id ind 1);
         int_write (get_accu_id (ind + 1));
-        (* force_int (get_accu_id (ind + 1)); *)
+        force_int (get_accu_id (ind + 1));
       | Setstringchar ->
         force_int (get_stack_id ind 0);
         force_int (get_stack_id ind 1);
@@ -746,11 +769,12 @@ let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
         int_read (get_stack_id ind 0);
         int_read (get_stack_id ind 1);
         int_write (get_accu_id (ind + 1));
-        (* force_int (get_accu_id (ind + 1)); *)
+        force_int (get_accu_id (ind + 1));
       | Branch _ ->
         ();
       | CondBranch _ ->
-        (* WARNING: if x = None then _
+        (* WARNING: booleans can't be considered as integers
+           Example: if b then Some 42 else None
            => DO NOT UNCOMMENT THIS:
            force_int (get_accu_id ind); *)
         int_read (get_accu_id ind);
