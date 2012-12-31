@@ -241,7 +241,7 @@ and print_macro oc macro =
       fprintf oc "GETMETHOD(%a, %a, %a)" print_expr tag print_expr obj
         print_lvalue meth
     | GETPUBMET (tag, obj, meth) ->
-      fprintf oc "GETPUBMET(%d, %a, %a)" tag print_expr obj
+      fprintf oc "GETPUBMET(Val_int(%d), %a, %a)" tag print_expr obj
         print_lvalue meth
     | GETDYNMET (tag, obj, meth) ->
       fprintf oc "GETDYNMET(%a, %a, %a)" print_expr tag print_expr obj
