@@ -12,6 +12,7 @@
 
 ARCH := $(shell arch)
 OCAMLC := $(shell which ocamlc)
+OCAMLOPT := $(shell which ocamlopt)
 LIBDIR := $(shell $(OCAMLC) -where)
 OCAMLCC = ../bin/ocamlcc
 CC = gcc
@@ -123,11 +124,37 @@ ocamlc-rsp.c: $(OCAMLC) check-project
 
 ###
 
+ocamlopt.c: $(OCAMLOPT) check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN $< -o $@
+
+ocamlopt-clang.c: $(OCAMLOPT) check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN $< -o $@
+
+ocamlopt-nxc.c: $(OCAMLOPT) check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN -no-xconst $< -o $@
+
+ocamlopt-none.c: $(OCAMLOPT) check-project
+	$(OCAMLCC) -c -verbose -stat -arch NONE $< -o $@
+
+ocamlopt-$(ARCH).c: $(OCAMLOPT) check-project
+	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
+
+ocamlopt-nxc-$(ARCH).c: $(OCAMLOPT) check-project
+	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
+
+ocamlopt-gsp.c: $(OCAMLOPT) check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN -stack-pointer G $< -o $@
+
+ocamlopt-rsp.c: $(OCAMLOPT) check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN -stack-pointer R $< -o $@
+
+###
+
 flocon.byte: flocon.ml
 	$(OCAMLC) -g unix.cma graphics.cma $< -o $@
 
 flocon.native: flocon.ml
-	ocamlopt -verbose unix.cmxa graphics.cmxa $< -o $@
+	$(OCAMLOPT) -verbose unix.cmxa graphics.cmxa $< -o $@
 
 flocon.c: flocon.byte check-project
 	$(OCAMLCC) -signal R -c -verbose -stat -arch GEN $<
@@ -160,7 +187,7 @@ floco%: floco%.c check-project
 	$(OCAMLC) -g $< -o $@
 
 %.native: %.ml
-	ocamlopt $< -o $@
+	$(OCAMLOPT) $< -o $@
 
 %.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch GEN $<
@@ -203,11 +230,8 @@ floco%: floco%.c check-project
 ###
 
 clean:
-	@rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) ocamlc.c ocamlc ocamlc-nxc.c \
-	  ocamlc-nxc ocamlc-$(ARCH).c ocamlc-$(ARCH) ocamlc-nxc-$(ARCH).c \
-	  ocamlc-nxc-$(ARCH) ocamlc-none.c ocamlc-none ocamlc-tcc.c ocamlc-tcc \
-	  ocamlc-clang.c ocamlc-clang ocamlc-gsp.c ocamlc-gsp ocamlc-rsp.c \
-	  ocamlc-rsp a.out
+	@/bin/rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) a.out \
+  ocaml{c,opt}{,-nxc,-$(ARCH),-nxc-$(ARCH),-none,-tcc,-clang,-gsp,-rsp}{.c,}
 
 ###
 

@@ -396,10 +396,7 @@ let compute_gc_read prims body states fun_infos =
 
 (***)
 
-let mem_instr_preds = Hashtbl.create 10000;;
-
 let compute_instr_preds body =
-  try Hashtbl.find mem_instr_preds body with Not_found ->
   let nb_instr = Array.length body in
   let instr_nexts = Array.map Body.compute_nexts body in
   let instr_preds =
@@ -436,7 +433,6 @@ let compute_instr_preds body =
       List.iter (interp new_traps (i :: l)) nexts;
   in
   interp [] [ 0 ] 0;
-  Hashtbl.add mem_instr_preds body instr_preds;
   instr_preds
 ;;
 
@@ -453,8 +449,8 @@ let is_predecessor x instr_preds y =
 
 (***)
 
-let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos =
-  let instr_preds = compute_instr_preds body in
+let compute_ptrs prims body env_desc states idvd_map gc_read run_gc fun_infos
+    instr_preds =
   let read_tbl = Hashtbl.create 16 in
   let set_add set id = set := ISet.add id !set in
   let map_add map id1 id2 =
@@ -949,8 +945,9 @@ let extract_constants prims funs =
     let arity = fun_desc.arity and body = fun_desc.body in
     let (states, equivs, copies, idvd_map) = compute_ids arity body in
     let (states', idvd_map') = unify_ids states equivs copies idvd_map in
-    let arg_ids = compute_arg_ids fun_desc.arity states' in
-    (id, fun_desc, states', idvd_map', arg_ids) :: acc
+    let arg_ids = compute_arg_ids arity states' in
+    let instr_preds = compute_instr_preds body in
+    (id, fun_desc, states', idvd_map', arg_ids, instr_preds) :: acc
   in
   let infos = IMap.fold extract_infos funs [] in
   let fun_infos =
@@ -978,14 +975,14 @@ let extract_constants prims funs =
     fst (IMap.fold f funs (IMap.empty, IMap.empty))
   in
   let update_fun_infos (sets_map, flag)
-      (id, fun_desc, states, idvd_map, arg_ids) =
+      (id, fun_desc, states, idvd_map, arg_ids, instr_preds) =
     let (gc_read, r_gc) =
       compute_gc_read prims fun_desc.body states fun_infos
     in
     let (ptr_set, int_set, read_set, ptr_read_set, p_res, read_args, u_env,
          ofs_clo, env_set, env_ints) =
       compute_ptrs prims fun_desc.body fun_desc.env_desc states idvd_map
-        gc_read r_gc fun_infos
+        gc_read r_gc fun_infos instr_preds
     in
     let fun_info = IMap.find id fun_infos in
     let new_flag = ref flag in
@@ -1040,7 +1037,7 @@ let extract_constants prims funs =
     if flag then fix_point () else sets_map
   in
   let sets_map = fix_point () in
-  let compute_ids_infos acc (id, fun_desc, states, idvd_map, _) =
+  let compute_ids_infos acc (id, fun_desc, states, idvd_map, _, _) =
     let (ptr_set, read_set, read_args) = IMap.find id sets_map in
     IMap.add id {
       fun_desc  = fun_desc;
