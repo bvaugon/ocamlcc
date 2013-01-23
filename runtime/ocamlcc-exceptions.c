@@ -10,17 +10,17 @@
 /*                                                                       */
 /*************************************************************************/
 
-#ifdef OCAMLCC_EXCEPTION_SETJMP
-
 #include <stdlib.h>
 #include "ocamlcc-byterun/fail.h"
+
+typedef struct caml__roots_block *caml__roots_block_struct_ptr;
+
+#ifdef OCAMLCC_EXCEPTION_SETJMP
 
 #define OCAMLCC_EXCEPTION_STACK_INIT_SIZE 256
 struct longjmp_buffer *ocamlcc_exception_stack;
 long ocamlcc_exception_stack_size = OCAMLCC_EXCEPTION_STACK_INIT_SIZE;
 long ocamlcc_exception_stack_offset = 0;
-
-typedef struct caml__roots_block *caml__roots_block_struct_ptr;
 
 void ocamlcc_exception_init_fun(void) {
   ocamlcc_exception_stack = (struct longjmp_buffer *)

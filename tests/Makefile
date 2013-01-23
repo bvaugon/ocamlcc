@@ -29,6 +29,7 @@ NONECS = $(BYTES:.byte=-none.c)
 NXCCS = $(BYTES:.byte=-nxc.c)
 ARCHCS = $(BYTES:.byte=-$(ARCH).c)
 NXCARCHCS = $(BYTES:.byte=-nxc-$(ARCH).c)
+TRYCS = $(BYTES:.byte=-try.c)
 TCCCS = $(BYTES:.byte=-tcc.c)
 CLANGCS = $(BYTES:.byte=-clang.c)
 GSPCS = $(BYTES:.byte=-gsp.c)
@@ -39,6 +40,7 @@ NONES = $(NONECS:.c=)
 NXCS = $(NXCCS:.c=)
 ARCHS = $(ARCHCS:.c=)
 NXCARCHS = $(NXCARCHCS:.c=)
+TRYS = $(TRYCS:.c=)
 TCCS = $(TCCCS:.c=)
 CLANGS = $(CLANGCS:.c=)
 GSPS = $(GSPCS:.c=)
@@ -72,11 +74,11 @@ endif
 
 ifeq ($(MANAGED_ARCH), true)
 TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS) \
-	 $(ARCHCS) $(ARCHS) $(NXCARCHCS) $(NXCARCHS) $(TCCCS) $(TCCS) \
+	 $(ARCHCS) $(ARCHS) $(NXCARCHCS) $(NXCARCHS) $(TRYCS) $(TCCCS) $(TCCS) \
 	 $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS) $(RSPCS) $(RSPS)
 else
 TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS) \
-	 $(TCCCS) $(TCCS) $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS)
+	 $(TCCCS) $(TCCS) $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS) $(TRYCS)
 endif
 
 ###
@@ -86,6 +88,7 @@ gens: $(CS) $(S)
 nones: $(NONECS) $(NONES)
 nxcs: $(NXCCS) $(NXCS)
 archs: $(ARCHCS) $(ARCHS)
+trys: $(TRYCS) $(TRYS)
 tccs: $(TCCCS) $(TCCS)
 clangs: $(CLANGCS) $(CLANGS)
 gsps: $(GSPCS) $(GSPS)
@@ -116,6 +119,9 @@ ocamlc-$(ARCH).c: $(OCAMLC) check-project
 ocamlc-nxc-$(ARCH).c: $(OCAMLC) check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
 
+ocamlc-try.c: $(OCAMLC) check-project
+	$(OCAMLCC) -c -verbose -stat -exception T -no-xconst $< -o $@
+
 ocamlc-gsp.c: $(OCAMLC) check-project
 	$(OCAMLCC) -c -verbose -stat -arch GEN -stack-pointer G $< -o $@
 
@@ -142,6 +148,9 @@ ocamlopt-$(ARCH).c: $(OCAMLOPT) check-project
 ocamlopt-nxc-$(ARCH).c: $(OCAMLOPT) check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
 
+ocamlopt-try.c: $(OCAMLOPT) check-project
+	$(OCAMLCC) -c -verbose -stat -exception T $< -o $@
+
 ocamlopt-gsp.c: $(OCAMLOPT) check-project
 	$(OCAMLCC) -c -verbose -stat -arch GEN -stack-pointer G $< -o $@
 
@@ -167,6 +176,9 @@ flocon-none.c: flocon.byte check-project
 
 flocon-$(ARCH).c: flocon.byte check-project
 	$(OCAMLCC) -signal R -c -verbose -stat -arch $(ARCH) $< -o $@
+
+flocon-try.c: flocon.byte check-project
+	$(OCAMLCC) -signal R -c -verbose -stat -exception T $< -o $@
 
 flocon-nxc-$(ARCH).c: flocon.byte check-project
 	$(OCAMLCC) -signal R -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
@@ -207,6 +219,9 @@ floco%: floco%.c check-project
 %-nxc-$(ARCH).c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
 
+%-try.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -exception T -no-xconst $< -o $@
+
 %-gsp.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch GEN -stack-pointer G $< -o $@
 
@@ -221,6 +236,9 @@ floco%: floco%.c check-project
 %-$(ARCH): %-$(ARCH).c check-project
 	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -fno-omit-frame-pointer -O3
 
+%-try: %-try.c check-project
+	g++ $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O3
+
 %-tcc: %.c check-project
 	tcc $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O3
 
@@ -231,7 +249,7 @@ floco%: floco%.c check-project
 
 clean:
 	@/bin/rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) a.out \
-  ocaml{c,opt}{,-nxc,-$(ARCH),-nxc-$(ARCH),-none,-tcc,-clang,-gsp,-rsp}{.c,}
+ ocaml{c,opt}{,-nxc,-$(ARCH),-nxc-$(ARCH),-try,-none,-tcc,-clang,-gsp,-rsp}{.c,}
 
 ###
 
