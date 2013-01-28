@@ -11,7 +11,7 @@
 /*************************************************************************/
 
 #include <stdlib.h>
-#include "ocamlcc-byterun/fail.h"
+#include <fail.h>
 
 typedef struct caml__roots_block *caml__roots_block_struct_ptr;
 

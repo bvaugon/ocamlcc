@@ -10,11 +10,11 @@
 /*                                                                       */
 /*************************************************************************/
 
-#include "ocamlcc-byterun/mlvalues.h"
-#include "ocamlcc-byterun/memory.h"
-#include "ocamlcc-byterun/stacks.h"
-#include "ocamlcc-byterun/callback.h"
-#include "ocamlcc-byterun/signals.h"
+#include <mlvalues.h>
+#include <memory.h>
+#include <stacks.h>
+#include <callback.h>
+#include <signals.h>
 
 static void ocamlcc_bytecode_main(void);
 

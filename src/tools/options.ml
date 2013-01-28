@@ -27,6 +27,7 @@ let sp_mode = ref Local_sp;;
 let ccomp = ref Config.ccomp;;
 let ccopts = ref "-O3 -Wall";;
 let no_xconst = ref false;;
+let runtime_version = ref Config.default_runtime_version;;
 
 (***)
 
@@ -143,3 +144,21 @@ let rec add_ccopts sopts =
 ;;
 
 (***)
+
+let runtime_versions_doc =
+  let buf = Buffer.create 32 in
+  let add v =
+    Buffer.add_string buf v;
+    if v = Config.default_runtime_version then
+      Buffer.add_string buf " (default)";
+  in
+  Buffer.add_string buf "<x> Define OCaml runtime version [ ";
+  begin match Config.runtime_versions with
+    | [] -> ()
+    | v0 :: rest ->
+      add v0;
+      List.iter (fun v -> Buffer.add_string buf " | "; add v) rest
+  end;
+  Buffer.add_string buf " ]";
+  Buffer.contents buf
+;;

@@ -173,6 +173,7 @@ CAMLexport void caml_MD5Final(unsigned char *digest, struct MD5Context *ctx)
 {
     unsigned count;
     unsigned char *p;
+    /* OCamlCC: see below */
     uint32 *tmp;
 
     /* Compute number of bytes mod 64 */

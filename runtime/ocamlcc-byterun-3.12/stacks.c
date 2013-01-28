@@ -22,12 +22,11 @@
 #include "mlvalues.h"
 #include "stacks.h"
 
-
 CAMLexport value * caml_stack_low;
 CAMLexport value * caml_stack_high;
+CAMLexport value * caml_stack_threshold;
 /* OCamlCC: move caml_extern_sp definition to ocamlcc-sp.c */
 /*CAMLexport value * caml_extern_sp;*/
-CAMLexport value * caml_stack_threshold;
 CAMLexport value * caml_trapsp;
 CAMLexport value * caml_trap_barrier;
 value caml_global_data;

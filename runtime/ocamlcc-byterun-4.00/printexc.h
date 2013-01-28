@@ -1,36 +1,35 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         */
 /*                                                                     */
-/*  Copyright 1996 Institut National de Recherche en Informatique et   */
+/*  Copyright 2001 Institut National de Recherche en Informatique et   */
 /*  en Automatique.  All rights reserved.  This file is distributed    */
 /*  under the terms of the GNU Library General Public License, with    */
 /*  the special exception on linking described in file ../LICENSE.     */
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: prims.h 6130 2004-02-22 15:07:51Z xleroy $ */
+/* $Id: printexc.h 12000 2012-01-07 20:55:28Z lefessan $ */
 
-/* Interface with C primitives. */
+#ifndef CAML_PRINTEXC_H
+#define CAML_PRINTEXC_H
 
-#ifndef CAML_PRIMS_H
-#define CAML_PRIMS_H
 
-typedef value (*c_primitive)();
+#include "misc.h"
+#include "mlvalues.h"
 
-extern c_primitive caml_builtin_cprim[];
-extern const char * caml_names_of_builtin_cprim[];
-
-extern struct ext_table caml_prim_table;
-#ifdef DEBUG
-extern struct ext_table caml_prim_name_table;
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#define Primitive(n) ((c_primitive)(caml_prim_table.contents[n]))
 
-extern char * caml_section_table;
-extern asize_t caml_section_table_size;
+CAMLextern char * caml_format_exception (value);
+void caml_fatal_uncaught_exception (value) Noreturn;
 
-#endif /* CAML_PRIMS_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* CAML_PRINTEXC_H */

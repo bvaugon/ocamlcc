@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 {
 #ifdef DEBUG
   {
-#if 0
+#if 0 /* OCamlCC: clean */
     char *ocp;
     char *cp;
     int i;

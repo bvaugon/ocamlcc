@@ -14,6 +14,7 @@ let set_arch = ref (fun _ -> ());;
 let set_sigconf = ref (fun _ -> ());;
 let set_exception = ref (fun _ -> ());;
 let set_spmode = ref (fun _ -> ());;
+let set_runtime_version = ref (fun _ -> ());;
 
 (***)
 
@@ -48,6 +49,8 @@ let spec =
      " Do not include the main function");
     ("-no-xconst", Arg.Set Options.no_xconst,
      " Do not perform constant extraction");
+    ("-runtime-version", Arg.String (fun s -> !set_runtime_version s),
+     Options.runtime_versions_doc);
     ("-include", Arg.Unit (fun () -> print_endline Config.include_dir; exit 0),
      " Print include directory and exit");
     ("-stat", Arg.Set Options.stat,
@@ -58,11 +61,19 @@ let spec =
      " Print version and exit");
     ("-v", Arg.Unit
       (fun () ->
-        Printf.printf "OCamlCC version %s\n" Config.version;
-        Printf.printf "Default arch: %s\n" Options.default_arch;
-        Printf.printf "Based on the %s runtime\n" Config.runtime_version;
-        Printf.printf "C compiler: %s\n" Config.ccomp;
-        Printf.printf "Include directory: %s\n" Config.include_dir;
+        Printf.printf "OCamlCC version %s\n"
+          Config.version;
+        Printf.printf "Default architecture: %s\n"
+          Options.default_arch;
+        Printf.printf "Available runtime versions:";
+        List.iter (Printf.printf " %s") Config.runtime_versions;
+        Printf.printf "\n";
+        Printf.printf "Default runtime version: %s\n"
+          Config.default_runtime_version;
+        Printf.printf "Default C compiler: %s\n"
+          Config.ccomp;
+        Printf.printf "Include directory: %s\n"
+          Config.include_dir;
         exit 0),
      " Print directories and versions, then exit");
   ]
@@ -107,6 +118,11 @@ let () = begin
       try Options.sp_mode := Options.spmode_of_string s
       with Invalid_argument _ ->
         error "invalid stack-pointer mode configuration: %S" s);
+  set_runtime_version :=
+    (fun s ->
+      if not (List.mem s Config.runtime_versions) then
+        error "incompatible runtime version: %S" s;
+      Options.runtime_version := s);
   Arg.parse spec unknow usage;
 end;;
 
@@ -170,8 +186,10 @@ let run_cc args =
   in
   let command =
     Printf.sprintf
-      "%s -D_FILE_OFFSET_BITS=64 %s -I %s%s -lm -ldl -lcurses -Wl,-E %s"
-      !Options.ccomp args Config.include_dir fnofp !Options.ccopts
+      "%s -D_FILE_OFFSET_BITS=64 %s -I %s -I %s/ocamlcc-byterun-%s%s \
+       -lm -ldl -lcurses -Wl,-E %s"
+      !Options.ccomp args Config.include_dir Config.include_dir
+      !Options.runtime_version fnofp !Options.ccopts
   in
   run_command command
 ;;

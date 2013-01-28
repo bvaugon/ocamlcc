@@ -16,8 +16,8 @@
 #include <stdlib.h>
 #include <windows.h>
 #include <mswsock.h>
-#include "ocamlcc-byterun/config.h"
-#include "ocamlcc-byterun/flexdll.c"
+#include <config.h>
+#include <flexdll.c>
 
 #define sigjmp_buf jmp_buf
 #define sigsetjmp(buf,save) setjmp(buf)

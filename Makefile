@@ -34,7 +34,9 @@ install: all
 	cp bin/ocamlcc "$(BINDIR)/ocamlcc"
 	gzip -c man/ocamlcc.1 > "$(MAN1DIR)/ocamlcc.1.gz"
 	cp -R runtime/* "$(INCLUDEDIR)/"
-	cp etc/config.h "$(INCLUDEDIR)/ocamlcc-byterun/config.h"
+	for d in runtime/ocamlcc-byterun-?.??; do              \
+	  cp etc/config.h "$(INCLUDEDIR)/$${d:8:20}/config.h"; \
+	done
 	@if [ $(INSTALL_OCAMLCLEAN) = true ]; then \
             cd $(OCAMLCLEAN_DIRECTORY)/;           \
             make --no-print-directory install;     \

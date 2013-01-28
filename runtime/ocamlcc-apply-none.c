@@ -14,9 +14,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "ocamlcc-byterun/mlvalues.h"
-#include "ocamlcc-byterun/memory.h"
-#include "ocamlcc-byterun/stacks.h"
+#include <mlvalues.h>
+#include <memory.h>
+#include <stacks.h>
 
 /***/
 

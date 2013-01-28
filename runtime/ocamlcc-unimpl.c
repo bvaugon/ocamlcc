@@ -10,8 +10,8 @@
 /*                                                                       */
 /*************************************************************************/
 
-#include "ocamlcc-byterun/fail.h"
-#include "ocamlcc-byterun/misc.h"
+#include <fail.h>
+#include <misc.h>
 
 void ocamlcc_dynlink_error(void) Noreturn;
 void ocamlcc_dynlink_error(void) {
@@ -35,5 +35,9 @@ CAMLprim value caml_get_section_table(value unit) {
   ocamlcc_dynlink_error();
 }
 CAMLprim value caml_realloc_global(value size) {
+  ocamlcc_dynlink_error();
+}
+CAMLprim value caml_register_code_fragment(value prog, value len,
+                                           value digest) {
   ocamlcc_dynlink_error();
 }

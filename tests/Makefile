@@ -12,11 +12,13 @@
 
 ARCH := $(shell arch)
 OCAMLC := $(shell which ocamlc)
+OCAML_VERSION := $(shell ocamlc -version | cut -c1-4)
 OCAMLOPT := $(shell which ocamlopt)
 LIBDIR := $(shell $(OCAMLC) -where)
 OCAMLCC = ../bin/ocamlcc
 CC = gcc
-CC_INCLUDES = -I ../etc -I ../runtime -I ../runtime/ocamlcc-byterun
+CC_INCLUDES = -I ../etc -I ../runtime -I \
+		../runtime/ocamlcc-byterun-$(OCAML_VERSION)
 CC_FLAGS = -D_FILE_OFFSET_BITS=64 -Wall -lm -ldl -lcurses
 
 ###
@@ -74,11 +76,11 @@ endif
 
 ifeq ($(MANAGED_ARCH), true)
 TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS) \
-	 $(ARCHCS) $(ARCHS) $(NXCARCHCS) $(NXCARCHS) $(TRYCS) $(TCCCS) $(TCCS) \
-	 $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS) $(RSPCS) $(RSPS)
+	 $(ARCHCS) $(ARCHS) $(NXCARCHCS) $(NXCARCHS) $(TRYCS) $(TRYS) $(TCCCS) \
+	 $(TCCS) $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS) $(RSPCS) $(RSPS)
 else
 TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS) \
-	 $(TCCCS) $(TCCS) $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS) $(TRYCS)
+	 $(TCCCS) $(TCCS) $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS) $(TRYCS) $(TRYS)
 endif
 
 ###
