@@ -10,29 +10,25 @@
 /*                                                                       */
 /*************************************************************************/
 
-#include <mlvalues.h>
-#include <memory.h>
-#include <stacks.h>
-#include <callback.h>
-#include <signals.h>
+#include <stdlib.h>
+#include <string.h>
 
-static void ocamlcc_bytecode_main(void);
+extern const int ocamlcc_fun_nb;
+extern const void *ocamlcc_fun_ptrs[];
+extern code_t caml_start_code;
+extern asize_t caml_code_size;
 
-value ocamlcc_main() {
-  CAMLparam0();
-  CAMLlocal1(result);
-  DeclareLocalSp();
-  ocamlcc_exception_init();
-  ocamlcc_codeptrs_init();
-  ocamlcc_pushtrap(result = Make_exception_result(caml_exn_bucket),
-                   catch_label, 0_main_0);
-  ocamlcc_bytecode_main();
-  ocamlcc_poptrap(0);
-  OffsetSp(0);
-  result = Val_unit;
-  goto end;
-  ocamlcc_catch(catch_label, result = Make_exception_result(exn));
-  OffsetSp(0);
- end:
-  CAMLreturn(result);
+void caml_init_code_fragments();
+
+void ocamlcc_codeptrs_init(void) {
+  int i;
+  code_t caml_end_code = caml_start_code = (code_t) ocamlcc_fun_ptrs[0];
+  for (i = 1 ; i < ocamlcc_fun_nb ; i ++) {
+    if ((code_t) ocamlcc_fun_ptrs[i] < caml_start_code)
+      caml_start_code = (code_t) ocamlcc_fun_ptrs[i];
+    else if ((code_t) ocamlcc_fun_ptrs[i] > caml_end_code)
+      caml_end_code = (code_t) ocamlcc_fun_ptrs[i];
+  }
+  caml_code_size = caml_end_code - caml_start_code + sizeof(char *);
+  caml_init_code_fragments();
 }

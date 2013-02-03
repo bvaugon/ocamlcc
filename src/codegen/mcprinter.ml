@@ -452,33 +452,22 @@ and print_fun_def oc {
   fprintf oc "}\n\n";
 
 and print_hashs oc fun_defs =
-  let rec f fun_defs =
-    match fun_defs with
-      | [] -> ()
-      | fun_def :: rest ->
-        begin
-          if fun_def.fdf_fun_id <> 0 then
-            let data = { fun_def with fdf_location = None ; fdf_fun_id = -1 } in
-            let str = Marshal.to_string data [] in
-            let hash = Digest.to_hex (Digest.string str) in
-            Printf.fprintf oc "  { &f%-6d, \"%s\" }" fun_def.fdf_fun_id hash;
-        end;
-        begin match rest with
-          | fun_def' :: _ ->
-            if fun_def'.fdf_fun_id <> 0 then Printf.fprintf oc ",\n";
-          | _ ->
-            Printf.fprintf oc "\n"
-        end;
-        f rest
+  let cnt = ref 0 in
+  let pp fun_def =
+    if fun_def.fdf_fun_id <> 0 then (
+      if !cnt <> 0 then (
+        Printf.fprintf oc ",";
+        if !cnt mod 8 = 0 then Printf.fprintf oc "\n ";
+      );
+      Printf.fprintf oc " &f%d" fun_def.fdf_fun_id;
+      incr cnt;
+    );
   in
   let fun_nb = List.length fun_defs - 1 in
-  Printf.fprintf oc "int ocamlcc_marshash_fun_nb = %d;\n" fun_nb;
-  Printf.fprintf oc "ocamlcc_marshash_t ocamlcc_marshash_table_inv[%d];\n"
-    fun_nb;
-  Printf.fprintf oc "ocamlcc_marshash_t ocamlcc_marshash_table[%d] = {\n"
-    fun_nb;
-  f fun_defs;
-  Printf.fprintf oc "};\n";
+  Printf.fprintf oc "const int ocamlcc_fun_nb = %d;\n" fun_nb;
+  Printf.fprintf oc "const void *ocamlcc_fun_ptrs[%d] = {\n " fun_nb;
+  List.iter pp fun_defs;
+  Printf.fprintf oc "\n};\n";
 
 and print_macroc oc macroc =
   Data.export oc macroc.mc_data;
