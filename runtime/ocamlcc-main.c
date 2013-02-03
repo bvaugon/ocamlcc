@@ -23,6 +23,7 @@ value ocamlcc_main() {
   CAMLlocal1(result);
   DeclareLocalSp();
   ocamlcc_exception_init();
+  ocamlcc_marshash_init();
   ocamlcc_pushtrap(result = Make_exception_result(caml_exn_bucket),
                    catch_label, 0_main_0);
   ocamlcc_bytecode_main();

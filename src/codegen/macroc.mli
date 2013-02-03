@@ -189,6 +189,7 @@ and fun_decl = {
 }
 
 and fun_def = {
+  fdf_fun_id    : int;
   fdf_location  : Types.location option;
   fdf_signature : fun_signature;
   fdf_locals    : var_decl list;

@@ -28,6 +28,7 @@ extern "C" {
 #include "ocamlcc-apply-gen.c"
 #include "ocamlcc-apply-none.c"
 #include "ocamlcc-apply-x86x.c"
+#include "ocamlcc-marshash.c"
 #include "ocamlcc-main.c"
 #include "ocamlcc-byterun.h"
 #include "ocamlcc-otherlibs.h"

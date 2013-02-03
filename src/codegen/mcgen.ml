@@ -69,6 +69,7 @@ let compute_fun_decl fun_desc use_env inlinable location = {
 };;
 
 let compute_fun_def fun_desc use_env locals body location = {
+  fdf_fun_id    = fun_desc.fun_id;
   fdf_location  = location;
   fdf_signature = compute_fun_signature fun_desc.fun_id use_env fun_desc.arity;
   fdf_locals    = locals;

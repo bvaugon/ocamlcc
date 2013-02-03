@@ -39,6 +39,7 @@ tests/ocamlc
 tests/ocamlopt
 tests/flocon
 tests/wscope
+tests/marsh
 ocamlclean/*
 !ocamlclean/*.tar.bz2
 plus/

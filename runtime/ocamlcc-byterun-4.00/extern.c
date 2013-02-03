@@ -75,7 +75,8 @@ static void extern_out_of_memory(void);
 static void extern_invalid_argument(char *msg);
 static void extern_failwith(char *msg);
 static void extern_stack_overflow(void);
-static struct code_fragment * extern_find_code(char *addr);
+/* OCamlCC */
+/* static struct code_fragment * extern_find_code(char *addr); */
 static void extern_replay_trail(void);
 static void free_extern_output(void);
 
@@ -359,7 +360,8 @@ static void writecode64(int code, intnat val)
 
 static void extern_rec(value v)
 {
-  struct code_fragment * cf;
+  /* OCamlCC */
+  /* struct code_fragment * cf; */
   struct extern_item * sp;
   sp = extern_stack;
 
@@ -513,6 +515,8 @@ static void extern_rec(value v)
     }
     }
   }
+  /* OCamlCC */
+  /*
   else if ((cf = extern_find_code((char *) v)) != NULL) {
     if (!extern_closures)
       extern_invalid_argument("output_value: functional value");
@@ -520,6 +524,21 @@ static void extern_rec(value v)
     writeblock((char *) cf->digest, 16);
   } else {
     extern_invalid_argument("output_value: abstract value (outside heap)");
+  }
+  */
+  else {
+    /* OCamlCC */
+    char *digest = ocamlcc_marshash_digest_of_fun_ptr((void *) v);
+    if (digest != NULL) {
+      if (!extern_closures)
+        extern_invalid_argument("output_value: functional value");
+      if (extern_ptr + 1 > extern_limit) grow_extern_output(1);
+      extern_ptr[0] = CODE_CODEPOINTER;
+      extern_ptr ++;
+      writeblock(digest, 16);
+    } else {
+      extern_invalid_argument("output_value: abstract value (outside heap)");
+    }
   }
   next_item:
     /* Pop one more item to marshal, if any */
@@ -812,6 +831,8 @@ CAMLexport void caml_serialize_block_float_8(void * data, intnat len)
 
 /* Find where a code pointer comes from */
 
+/* OCamlCC */
+/*
 static struct code_fragment * extern_find_code(char *addr)
 {
   int i;
@@ -825,3 +846,4 @@ static struct code_fragment * extern_find_code(char *addr)
   }
   return NULL;
 }
+*/

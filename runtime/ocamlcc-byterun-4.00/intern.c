@@ -72,8 +72,9 @@ static value * camlinternaloo_last_id = NULL;
 /* Pointer to a reference holding the last object id.
    -1 means not available (CamlinternalOO not loaded). */
 
-static char * intern_resolve_code_pointer(unsigned char digest[16],
-                                          asize_t offset);
+/* OCamlCC */
+/* static char * intern_resolve_code_pointer(unsigned char digest[16],
+                                             asize_t offset); */
 static void intern_bad_code_pointer(unsigned char digest[16]) Noreturn;
 
 static void intern_free_stack(void);
@@ -446,9 +447,11 @@ static void intern_rec(value *dest)
         len = read32u();
         goto read_double_array;
       case CODE_CODEPOINTER:
-        ofs = read32u();
+        /* OCamlCC */
+        /* ofs = read32u(); */
         readblock(digest, 16);
-        codeptr = intern_resolve_code_pointer(digest, ofs);
+        /* codeptr = intern_resolve_code_pointer(digest, ofs); */
+        codeptr = ocamlcc_marshash_fun_ptr_of_digest(digest);
         if (codeptr != NULL) {
           v = (value) codeptr;
         } else {
@@ -734,6 +737,8 @@ CAMLprim value caml_marshal_data_size(value buff, value ofs)
 
 /* Resolution of code pointers */
 
+/* OCamlCC */
+/*
 static char * intern_resolve_code_pointer(unsigned char digest[16],
                                           asize_t offset)
 {
@@ -753,6 +758,7 @@ static char * intern_resolve_code_pointer(unsigned char digest[16],
   }
   return NULL;
 }
+*/
 
 static void intern_bad_code_pointer(unsigned char digest[16])
 {
