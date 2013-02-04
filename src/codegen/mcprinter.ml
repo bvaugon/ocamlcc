@@ -451,7 +451,7 @@ and print_fun_def oc {
   List.iter (print_instr oc) body;
   fprintf oc "}\n\n";
 
-and print_hashs oc fun_defs =
+and print_fun_ptrs oc fun_defs =
   let cnt = ref 0 in
   let pp fun_def =
     if fun_def.fdf_fun_id <> 0 then (
@@ -475,7 +475,7 @@ and print_macroc oc macroc =
   Apply.gen_applies oc macroc.mc_max_arity;
   List.iter (print_fun_decl oc) macroc.mc_fun_decls;
   Printf.fprintf oc "\n";
-  print_hashs oc macroc.mc_fun_defs;
+  print_fun_ptrs oc macroc.mc_fun_defs;
   Printf.fprintf oc "\n";
   List.iter (print_fun_def oc) macroc.mc_fun_defs;
 ;;

@@ -29,6 +29,19 @@ void ocamlcc_codeptrs_init(void) {
   }
   caml_code_size = caml_end_code - caml_start_code + sizeof(char *);
 #ifdef OCAMLCC_RUNTIME_VERSION_4_00
-  caml_init_code_fragments();
+  {
+    struct code_fragment * cf;
+    /* Register the code in the table of code fragments */
+    cf = caml_stat_alloc(sizeof(struct code_fragment));
+    cf->code_start = (char *) caml_start_code;
+    cf->code_end = (char *) caml_start_code + caml_code_size;
+    memcpy(cf->digest, OCAMLCC_MD5, 16);
+    cf->digest_computed = 1;
+    caml_ext_table_init(&caml_code_fragments_table, 8);
+    caml_ext_table_add(&caml_code_fragments_table, cf);
+  }
+#endif
+#ifdef OCAMLCC_RUNTIME_VERSION_3_12
+  memcpy(caml_code_md5,  OCAMLCC_MD5, 16);
 #endif
 }

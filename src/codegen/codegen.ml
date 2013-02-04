@@ -13,9 +13,10 @@
 open Types;;
 open Macroc;;
 
-let gen_code cfile macroc =
+let gen_code cfile macroc md5 =
   Options.verb_start "+ Generating %S..." cfile;
   let oc = open_out cfile in
+  Printf.fprintf oc "#define OCAMLCC_MD5 %S\n" md5;
   if !Options.no_main then Printf.fprintf oc "#define OCAMLCC_NO_MAIN\n";
   Printf.fprintf oc "#define OCAMLCC_GLOBAL_DATA_LENGTH %d\n"
     (String.length macroc.mc_data);

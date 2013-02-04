@@ -211,6 +211,9 @@ let b2c bfile cfile stop =
   let tmp_bfile = run_ocamlclean bfile in
   try
     let (prims, data, code, dbug) = Loader.load tmp_bfile in
+    let md5 =
+      Digest.to_hex (Digest.string (Marshal.to_string (prims, data, code) []))
+    in
     let funs = Body.create code in
   (* WARNING: compute_applies must be called before remap_stack *)
   (* WARNING: compute_applies change bytecode in place *)
@@ -225,8 +228,8 @@ let b2c bfile cfile stop =
     let macroc =
       Mcgen.gen_macroc prims data dbug funs fun_infos ids_infos tc_set
     in
-    Codegen.gen_code cfile macroc;
-  (*Printer.print_ids_infos stdout ids_infos;*)
+    Codegen.gen_code cfile macroc md5;
+    (*Printer.print_ids_infos stdout ids_infos;*)
     if !Options.stat then Stat.analyse stdout funs ids_infos fun_infos tc_set;
     remove_tmp_file tmp_bfile;
     if stop then exit 0;
