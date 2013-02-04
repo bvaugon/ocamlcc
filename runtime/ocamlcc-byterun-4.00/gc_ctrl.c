@@ -135,6 +135,9 @@ static value heap_stats (int returnstats)
 
 #ifdef DEBUG
   caml_gc_message (-1, "### OCaml runtime: heap check ###\n", 0);
+#else
+  /* OCamlCC: remove gcc warning */
+  (void) prev_hp;
 #endif
 
   while (chunk != NULL){

@@ -15,8 +15,6 @@
 
 extern const int ocamlcc_fun_nb;
 extern const void *ocamlcc_fun_ptrs[];
-extern code_t caml_start_code;
-extern asize_t caml_code_size;
 
 void caml_init_code_fragments();
 
@@ -30,5 +28,7 @@ void ocamlcc_codeptrs_init(void) {
       caml_end_code = (code_t) ocamlcc_fun_ptrs[i];
   }
   caml_code_size = caml_end_code - caml_start_code + sizeof(char *);
+#ifdef OCAMLCC_RUNTIME_VERSION_4_00
   caml_init_code_fragments();
+#endif
 }

@@ -260,7 +260,8 @@ CAMLexport void caml_print_exception_backtrace(void)
 {
   value events;
   int i;
-  struct loc_info li;
+  /* OCamlCC: init li */
+  struct loc_info li = {0};
 
   events = read_debug_info();
   if (events == Val_false) {

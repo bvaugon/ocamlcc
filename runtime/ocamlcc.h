@@ -18,6 +18,9 @@ extern "C" {
 #endif
 
 #include <mlvalues.h>
+#include <misc.h>
+#include <intext.h>
+#include <fix_code.h>
 #include "ocamlcc-sp.c"
 #include "ocamlcc-signals.c"
 #include "ocamlcc-exceptions.c"

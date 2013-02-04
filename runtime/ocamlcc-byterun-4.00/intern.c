@@ -598,8 +598,12 @@ value caml_input_val(struct channel *chan)
   intern_src = intern_input;
   /* Allocate result */
 #ifdef ARCH_SIXTYFOUR
+  /* OCamlCC: remove gcc warning */
+  (void) size_32;
   whsize = size_64;
 #else
+  /* OCamlCC: remove gcc warning */
+  (void) size_64;
   whsize = size_32;
 #endif
   intern_alloc(whsize, num_objects);
@@ -637,8 +641,12 @@ CAMLexport value caml_input_val_from_string(value str, intnat ofs)
   size_64 = read32u();
   /* Allocate result */
 #ifdef ARCH_SIXTYFOUR
+  /* OCamlCC: remove gcc warning */
+  (void) size_32;
   whsize = size_64;
 #else
+  /* OCamlCC: remove gcc warning */
+  (void) size_64;
   whsize = size_32;
 #endif
   intern_alloc(whsize, num_objects);
@@ -666,8 +674,12 @@ static value input_val_from_block(void)
   size_64 = read32u();
   /* Allocate result */
 #ifdef ARCH_SIXTYFOUR
+  /* OCamlCC: remove gcc warning */
+  (void) size_32;
   whsize = size_64;
 #else
+  /* OCamlCC: remove gcc warning */
+  (void) size_64;
   whsize = size_32;
 #endif
   intern_alloc(whsize, num_objects);
@@ -682,7 +694,8 @@ static value input_val_from_block(void)
 CAMLexport value caml_input_value_from_malloc(char * data, intnat ofs)
 {
   uint32 magic;
-  mlsize_t block_len;
+  /* OCamlCC: remove gcc warning */
+  /* mlsize_t block_len; */
   value obj;
 
   intern_input = (unsigned char *) data;
@@ -691,7 +704,8 @@ CAMLexport value caml_input_value_from_malloc(char * data, intnat ofs)
   magic = read32u();
   if (magic != Intext_magic_number)
     caml_failwith("input_value_from_malloc: bad object");
-  block_len = read32u();
+  /* OCamlCC: remove gcc warning */
+  /* block_len = */ (void) read32u();
   obj = input_val_from_block();
   /* Free the input */
   caml_stat_free(intern_input);

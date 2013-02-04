@@ -14,6 +14,6 @@ let f x = x + 42;;
 
 let s = Marshal.to_string f [ Marshal.Closures ];;
 
-let g = Marshal.from_string s 0;;
+let g : int -> int = Marshal.from_string s 0;;
 
 Printf.printf "%d\n" (g 42);;
