@@ -36,7 +36,7 @@
 
 #else /* OCAMLCC_SP_GLOBAL || OCAMLCC_SP_REGISTER */
 
-#define DeclareLocalSp() value *sp; sp = caml_extern_sp
+#define DeclareLocalSp() value *sp; sp = caml_extern_sp; (void) sp
 
 #define OffsetSp(ofs) (caml_extern_sp = sp + (ofs))
 #define ResetSp(ofs)
