@@ -12,6 +12,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <memory.h>
 
 extern const int ocamlcc_fun_nb;
 extern const void *ocamlcc_fun_ptrs[];

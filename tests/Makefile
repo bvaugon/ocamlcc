@@ -191,7 +191,11 @@ flocon-gsp.c: flocon.byte check-project
 flocon-rsp.c: flocon.byte check-project
 	$(OCAMLCC) -signal R -c -verbose -stat -arch GEN -stack-pointer R $< -o $@
 
-floco%: floco%.c check-project
+floco%.o: floco%.c check-project
+	$(CC) -c $< $(CC_INCLUDES) $(CC_FLAGS) -L $(LIBDIR) \
+	  -lgraphics -lX11 -lunix
+
+floco%: floco%.o check-project
 	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -L $(LIBDIR) \
 	  -lgraphics -lX11 -lunix
 
@@ -232,10 +236,16 @@ floco%: floco%.c check-project
 
 ###
 
-%: %.c check-project
+%.o: %.c check-project
+	$(CC) -c $< $(CC_INCLUDES) $(CC_FLAGS) -O3
+
+%: %.o check-project
 	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O3
 
-%-$(ARCH): %-$(ARCH).c check-project
+%-$(ARCH).o: %-$(ARCH).c check-project
+	$(CC) -c $< $(CC_INCLUDES) $(CC_FLAGS) -fno-omit-frame-pointer -O3
+
+%-$(ARCH): %-$(ARCH).o check-project
 	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -fno-omit-frame-pointer -O3
 
 %-try: %-try.c check-project
@@ -257,3 +267,4 @@ clean:
 
 .PHONY: tests check-project clean
 .PRESERVE: $(TARGS)
+.SUFFIXES:
