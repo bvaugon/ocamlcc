@@ -52,6 +52,8 @@ static struct custom_operations_list * custom_ops_table = NULL;
 CAMLexport void caml_register_custom_operations(struct custom_operations * ops)
 {
   struct custom_operations_list * l =
+    /* OCamlCC: fix g++ warning */
+    (struct custom_operations_list *)
     caml_stat_alloc(sizeof(struct custom_operations_list));
   Assert(ops->identifier != NULL);
   Assert(ops->deserialize != NULL);
@@ -76,7 +78,10 @@ struct custom_operations * caml_final_custom_operations(final_fun fn)
   struct custom_operations * ops;
   for (l = custom_ops_final_table; l != NULL; l = l->next)
     if (l->ops->finalize == fn) return l->ops;
-  ops = caml_stat_alloc(sizeof(struct custom_operations));
+  /* OCamlCC: fix g++ warning */
+  ops =
+    (struct custom_operations *)
+    caml_stat_alloc(sizeof(struct custom_operations));
   ops->identifier = "_final";
   ops->finalize = fn;
   ops->compare = custom_compare_default;
@@ -84,7 +89,10 @@ struct custom_operations * caml_final_custom_operations(final_fun fn)
   ops->serialize = custom_serialize_default;
   ops->deserialize = custom_deserialize_default;
   ops->compare_ext = custom_compare_ext_default;
-  l = caml_stat_alloc(sizeof(struct custom_operations_list));
+  /* OCamlCC: fix g++ warning */
+  l =
+    (struct custom_operations_list *)
+    caml_stat_alloc(sizeof(struct custom_operations_list));
   l->ops = ops;
   l->next = custom_ops_final_table;
   custom_ops_final_table = l;

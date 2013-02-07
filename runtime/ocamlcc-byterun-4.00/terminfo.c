@@ -27,9 +27,10 @@
 
 #if defined (HAS_TERMCAP) && !defined (NATIVE_CODE)
 
+/* OCamlCC: fix g++ warnings */
 extern int tgetent (char * buffer, char * name);
-extern char * tgetstr (char * id, char ** area);
-extern int tgetnum (char * id);
+extern char * tgetstr (const char * id, char ** area);
+extern int tgetnum (const char * id);
 extern int tputs (char * str, int count, int (*outchar)(int c));
 
 static struct channel *chan;

@@ -57,21 +57,23 @@ static unsigned long major_gc_counter = 0;
 
 static void realloc_gray_vals (void)
 {
-  value *new;
+  /* OCamlCC: fix C++ compatibility */
+  value *_new;
 
   Assert (gray_vals_cur == gray_vals_end);
-  if (gray_vals_size < caml_stat_heap_size / 128){
+  /* OCamlCC: fix g++ warning */
+  if (gray_vals_size < (asize_t) (caml_stat_heap_size / 128)){
     caml_gc_message (0x08, "Growing gray_vals to %"
                            ARCH_INTNAT_PRINTF_FORMAT "uk bytes\n",
                      (intnat) gray_vals_size * sizeof (value) / 512);
-    new = (value *) realloc ((char *) gray_vals,
+    _new = (value *) realloc ((char *) gray_vals,
                              2 * gray_vals_size * sizeof (value));
-    if (new == NULL){
+    if (_new == NULL){
       caml_gc_message (0x08, "No room for growing gray_vals\n", 0);
       gray_vals_cur = gray_vals;
       heap_is_pure = 0;
     }else{
-      gray_vals = new;
+      gray_vals = _new;
       gray_vals_cur = gray_vals + gray_vals_size;
       gray_vals_size *= 2;
       gray_vals_end = gray_vals + gray_vals_size;

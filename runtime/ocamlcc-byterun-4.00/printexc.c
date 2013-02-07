@@ -37,7 +37,8 @@ static void add_char(struct stringbuf *buf, char c)
   if (buf->ptr < buf->end) *(buf->ptr++) = c;
 }
 
-static void add_string(struct stringbuf *buf, char *s)
+/* OCamlCC: fix g++ warning */
+static void add_string(struct stringbuf *buf, const char *s)
 {
   int len = strlen(s);
   if (buf->ptr + len > buf->end) len = buf->end - buf->ptr;
@@ -87,7 +88,8 @@ CAMLexport char * caml_format_exception(value exn)
   }
   *buf.ptr = 0;              /* Terminate string */
   i = buf.ptr - buf.data + 1;
-  res = malloc(i);
+  /* OCamlCC: fix g++ warning */
+  res = (char *) malloc(i);
   if (res == NULL) return NULL;
   memmove(res, buf.data, i);
   return res;

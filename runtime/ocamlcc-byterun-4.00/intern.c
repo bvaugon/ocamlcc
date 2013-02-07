@@ -186,14 +186,17 @@ static void readfloats(double * dest, mlsize_t len, unsigned int code)
 }
 
 /* Item on the stack with defined operation */
+/* OCamlCC: fix C++ compatibility */
+enum intern_item_enum {
+  OReadItems, /* read arg items and store them in dest[0], dest[1], ... */
+  OFreshOID,  /* generate a fresh OID and store it in *dest */
+  OShift      /* offset *dest by arg */
+};
+
 struct intern_item {
   value * dest;
   intnat arg;
-  enum {
-    OReadItems, /* read arg items and store them in dest[0], dest[1], ... */
-    OFreshOID,  /* generate a fresh OID and store it in *dest */
-    OShift      /* offset *dest by arg */
-  } op;
+  enum intern_item_enum op;
 };
 
 /* FIXME: This is duplicated in two other places, with the only difference of
@@ -237,12 +240,16 @@ static struct intern_item * intern_resize_stack(struct intern_item * sp)
 
   if (newsize >= INTERN_STACK_MAX_SIZE) intern_stack_overflow();
   if (intern_stack == intern_stack_init) {
-    newstack = malloc(sizeof(struct intern_item) * newsize);
+    newstack =
+      /* OCamlCC: fix g++ warning */
+      (struct intern_item *) malloc(sizeof(struct intern_item) * newsize);
     if (newstack == NULL) intern_stack_overflow();
     memcpy(newstack, intern_stack_init,
            sizeof(struct intern_item) * INTERN_STACK_INIT_SIZE);
   } else {
     newstack =
+      /* OCamlCC: fix g++ warning */
+      (struct intern_item *)
       realloc(intern_stack, sizeof(struct intern_item) * newsize);
     if (newstack == NULL) intern_stack_overflow();
   }
@@ -584,7 +591,8 @@ value caml_input_val(struct channel *chan)
   size_32 = caml_getword(chan);
   size_64 = caml_getword(chan);
   /* Read block from channel */
-  block = caml_stat_alloc(block_len);
+  /* OCamlCC: fix g++ warning */
+  block = (char *) caml_stat_alloc(block_len);
   /* During [caml_really_getblock], concurrent [caml_input_val] operations
      can take place (via signal handlers or context switching in systhreads),
      and [intern_input] may change.  So, wait until [caml_really_getblock]
@@ -725,7 +733,8 @@ CAMLexport value caml_input_value_from_block(char * data, intnat len)
   if (magic != Intext_magic_number)
     caml_failwith("input_value_from_block: bad object");
   block_len = read32u();
-  if (5*4 + block_len > len)
+  /* OCamlCC: fix g++ warning */
+  if ((intnat) (5*4 + block_len) > len)
     caml_failwith("input_value_from_block: bad block length");
   obj = input_val_from_block();
   return obj;
@@ -753,7 +762,9 @@ static char * intern_resolve_code_pointer(unsigned char digest[16],
 {
   int i;
   for (i = caml_code_fragments_table.size - 1; i >= 0; i--) {
-    struct code_fragment * cf = caml_code_fragments_table.contents[i];
+    /* OCamlCC: fix g++ warning */
+    struct code_fragment * cf =
+      (struct code_fragment *) caml_code_fragments_table.contents[i];
     if (! cf->digest_computed) {
       caml_md5_block(cf->digest, cf->code_start, cf->code_end - cf->code_start);
       cf->digest_computed = 1;
@@ -849,7 +860,9 @@ CAMLexport void caml_deserialize_block_2(void * data, intnat len)
 {
 #ifndef ARCH_BIG_ENDIAN
   unsigned char * p, * q;
-  for (p = intern_src, q = data; len > 0; len--, p += 2, q += 2)
+  /* OCamlCC: fix g++ warning */
+  for (p = intern_src, q = (unsigned char *) data; len > 0;
+       len--, p += 2, q += 2)
     Reverse_16(q, p);
   intern_src = p;
 #else
@@ -862,7 +875,9 @@ CAMLexport void caml_deserialize_block_4(void * data, intnat len)
 {
 #ifndef ARCH_BIG_ENDIAN
   unsigned char * p, * q;
-  for (p = intern_src, q = data; len > 0; len--, p += 4, q += 4)
+  /* OCamlCC: fix g++ warning */
+  for (p = intern_src, q = (unsigned char *) data; len > 0;
+       len--, p += 4, q += 4)
     Reverse_32(q, p);
   intern_src = p;
 #else
@@ -875,7 +890,9 @@ CAMLexport void caml_deserialize_block_8(void * data, intnat len)
 {
 #ifndef ARCH_BIG_ENDIAN
   unsigned char * p, * q;
-  for (p = intern_src, q = data; len > 0; len--, p += 8, q += 8)
+  /* OCamlCC: fix g++ warning */
+  for (p = intern_src, q = (unsigned char *) data; len > 0;
+       len--, p += 8, q += 8)
     Reverse_64(q, p);
   intern_src = p;
 #else
@@ -902,7 +919,8 @@ CAMLexport void caml_deserialize_block_float_8(void * data, intnat len)
 #endif
 }
 
-CAMLexport void caml_deserialize_error(char * msg)
+/* OCamlCC: fix g++ warning */
+CAMLexport void caml_deserialize_error(const char * msg)
 {
   intern_cleanup();
   caml_failwith(msg);

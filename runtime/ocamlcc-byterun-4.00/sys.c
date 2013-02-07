@@ -132,7 +132,8 @@ CAMLprim value caml_sys_open(value path, value vflags, value vperm)
   int fd, flags, perm;
   char * p;
 
-  p = caml_stat_alloc(caml_string_length(path) + 1);
+  /* OCamlCC: fix g++ warning */
+  p = (char *) caml_stat_alloc(caml_string_length(path) + 1);
   strcpy(p, String_val(path));
   flags = caml_convert_flag_list(vflags, sys_open_flags);
   perm = Int_val(vperm);
@@ -254,7 +255,8 @@ CAMLprim value caml_sys_system_command(value command)
   intnat len;
 
   len = caml_string_length (command);
-  buf = caml_stat_alloc (len + 1);
+  /* OCamlCC: fix g++ warning */
+  buf = (char *) caml_stat_alloc (len + 1);
   memmove (buf, String_val (command), len + 1);
   caml_enter_blocking_section ();
   status = system(buf);

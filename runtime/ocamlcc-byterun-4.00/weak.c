@@ -172,7 +172,8 @@ CAMLprim value caml_weak_blit (value ars, value ofs,
     caml_invalid_argument ("Weak.blit");
   }
   if (caml_gc_phase == Phase_mark && caml_gc_subphase == Subphase_weak1){
-    for (i = 0; i < length; i++){
+    /* OCamlCC: fix g++ warning */
+    for (i = 0; (mlsize_t) i < length; i++){
       value v = Field (ars, offset_s + i);
       if (v != caml_weak_none && Is_block (v) && Is_in_heap (v)
           && Is_white_val (v)){
@@ -181,7 +182,8 @@ CAMLprim value caml_weak_blit (value ars, value ofs,
     }
   }
   if (offset_d < offset_s){
-    for (i = 0; i < length; i++){
+    /* OCamlCC: fix g++ warning */
+    for (i = 0; (mlsize_t) i < length; i++){
       do_set (ard, offset_d + i, Field (ars, offset_s + i));
     }
   }else{

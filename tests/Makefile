@@ -19,7 +19,8 @@ OCAMLCC = ../bin/ocamlcc
 CC = gcc
 CC_INCLUDES = -I ../etc -I ../runtime -I \
 		../runtime/ocamlcc-byterun-$(OCAML_VERSION)
-CC_FLAGS = -D_FILE_OFFSET_BITS=64 -Wall -lm -ldl -lcurses
+CC_FLAGS = $(CC_INCLUDES) -D_FILE_OFFSET_BITS=64 -Wall -O3
+CL_FLAGS = -lm -ldl -lcurses -Wall -O3
 
 ###
 
@@ -32,7 +33,6 @@ NXCCS = $(BYTES:.byte=-nxc.c)
 ARCHCS = $(BYTES:.byte=-$(ARCH).c)
 NXCARCHCS = $(BYTES:.byte=-nxc-$(ARCH).c)
 TRYCS = $(BYTES:.byte=-try.c)
-TCCCS = $(BYTES:.byte=-tcc.c)
 CLANGCS = $(BYTES:.byte=-clang.c)
 GSPCS = $(BYTES:.byte=-gsp.c)
 RSPCS = $(BYTES:.byte=-rsp.c)
@@ -43,7 +43,6 @@ NXCS = $(NXCCS:.c=)
 ARCHS = $(ARCHCS:.c=)
 NXCARCHS = $(NXCARCHCS:.c=)
 TRYS = $(TRYCS:.c=)
-TCCS = $(TCCCS:.c=)
 CLANGS = $(CLANGCS:.c=)
 GSPS = $(GSPCS:.c=)
 RSPS = $(RSPCS:.c=)
@@ -76,11 +75,11 @@ endif
 
 ifeq ($(MANAGED_ARCH), true)
 TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS) \
-	 $(ARCHCS) $(ARCHS) $(NXCARCHCS) $(NXCARCHS) $(TRYCS) $(TRYS) $(TCCCS) \
-	 $(TCCS) $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS) $(RSPCS) $(RSPS)
+	 $(ARCHCS) $(ARCHS) $(NXCARCHCS) $(NXCARCHS) $(TRYCS) $(TRYS) \
+	 $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS) $(RSPCS) $(RSPS)
 else
 TARGS = $(BYTES) $(NATIVES) $(CS) $(S) $(NONECS) $(NONES) $(NXCCS) $(NXCS) \
-	 $(TCCCS) $(TCCS) $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS) $(TRYCS) $(TRYS)
+	 $(CLANGCS) $(CLANGS) $(GSPCS) $(GSPS) $(TRYCS) $(TRYS)
 endif
 
 ###
@@ -91,7 +90,6 @@ nones: $(NONECS) $(NONES)
 nxcs: $(NXCCS) $(NXCS)
 archs: $(ARCHCS) $(ARCHS)
 trys: $(TRYCS) $(TRYS)
-tccs: $(TCCCS) $(TCCS)
 clangs: $(CLANGCS) $(CLANGS)
 gsps: $(GSPCS) $(GSPS)
 rsps: $(RSPCS) $(RSPS)
@@ -192,12 +190,22 @@ flocon-rsp.c: flocon.byte check-project
 	$(OCAMLCC) -signal R -c -verbose -stat -arch GEN -stack-pointer R $< -o $@
 
 floco%.o: floco%.c check-project
-	$(CC) -c $< $(CC_INCLUDES) $(CC_FLAGS) -L $(LIBDIR) \
-	  -lgraphics -lX11 -lunix
+	$(CC) -c $< $(CC_FLAGS)
 
 floco%: floco%.o check-project
-	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -L $(LIBDIR) \
-	  -lgraphics -lX11 -lunix
+	$(CC) $< -o $@ -L $(LIBDIR) $(CL_FLAGS) -lgraphics -lX11 -lunix
+
+floco%-try.o: floco%-try.c check-project
+	g++ -c $< $(CC_FLAGS)
+
+floco%-try: floco%-try.o check-project
+	g++ $< -o $@ -L $(LIBDIR) $(CL_FLAGS) -lgraphics -lX11 -lunix
+
+floco%-clang.o: floco%-clang.c check-project
+	clang -c $< $(CC_FLAGS)
+
+floco%-clang: floco%-clang.o check-project
+	clang $< -o $@ -L $(LIBDIR) $(CL_FLAGS) -lgraphics -lX11 -lunix
 
 ###
 
@@ -208,9 +216,6 @@ floco%: floco%.o check-project
 	$(OCAMLOPT) $< -o $@
 
 %.c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch GEN $<
-
-%-tcc.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch GEN $<
 
 %-nxc.c: %.byte check-project
@@ -226,7 +231,10 @@ floco%: floco%.o check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
 
 %-try.c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -exception T -no-xconst $< -o $@
+	$(OCAMLCC) -c -verbose -stat -arch GEN -exception T $< -o $@
+
+%-clang.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN $< -o $@
 
 %-gsp.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch GEN -stack-pointer G $< -o $@
@@ -237,31 +245,34 @@ floco%: floco%.o check-project
 ###
 
 %.o: %.c check-project
-	$(CC) -c $< $(CC_INCLUDES) $(CC_FLAGS) -O3
+	$(CC) -c $< $(CC_FLAGS)
 
 %: %.o check-project
-	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O3
+	$(CC) $< -o $@ $(CL_FLAGS)
 
 %-$(ARCH).o: %-$(ARCH).c check-project
-	$(CC) -c $< $(CC_INCLUDES) $(CC_FLAGS) -fno-omit-frame-pointer -O3
+	$(CC) -c $< $(CC_FLAGS) -fno-omit-frame-pointer
 
 %-$(ARCH): %-$(ARCH).o check-project
-	$(CC) $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -fno-omit-frame-pointer -O3
+	$(CC) $< -o $@ $(CL_FLAGS) -fno-omit-frame-pointer
 
-%-try: %-try.c check-project
-	g++ $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O3
+%-try.o: %-try.c check-project
+	g++ -c $< $(CC_FLAGS)
 
-%-tcc: %.c check-project
-	tcc $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O3
+%-try: %-try.o check-project
+	g++ $< -o $@ $(CL_FLAGS)
 
-%-clang: %-clang.c check-project
-	clang $< -o $@ $(CC_INCLUDES) $(CC_FLAGS) -O3
+%-clang.o: %-clang.c check-project
+	clang -c $< $(CC_FLAGS)
+
+%-clang: %-clang.o check-project
+	clang $< -o $@ $(CL_FLAGS)
 
 ###
 
 clean:
 	@/bin/rm -f *~ *.cmo *.cmi *.cmx *.o $(TARGS) a.out \
- ocaml{c,opt}{,-nxc,-$(ARCH),-nxc-$(ARCH),-try,-none,-tcc,-clang,-gsp,-rsp}{.c,}
+ ocaml{c,opt}{,-nxc,-$(ARCH),-nxc-$(ARCH),-try,-none,-clang,-gsp,-rsp}{.c,}
 
 ###
 

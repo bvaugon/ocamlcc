@@ -83,8 +83,10 @@ CAMLextern value caml_alloc_channel(struct channel *chan);
 CAMLextern int caml_flush_partial (struct channel *);
 CAMLextern void caml_flush (struct channel *);
 CAMLextern void caml_putword (struct channel *, uint32);
-CAMLextern int caml_putblock (struct channel *, char *, intnat);
-CAMLextern void caml_really_putblock (struct channel *, char *, intnat);
+/* OCamlCC: fix g++ warning */
+CAMLextern int caml_putblock (struct channel *, const char *, intnat);
+/* OCamlCC: fix g++ warning */
+CAMLextern void caml_really_putblock (struct channel *, const char *, intnat);
 
 CAMLextern unsigned char caml_refill (struct channel *);
 CAMLextern uint32 caml_getword (struct channel *);

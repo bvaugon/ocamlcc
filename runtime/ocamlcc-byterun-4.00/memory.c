@@ -186,7 +186,8 @@ static int caml_page_table_modify(uintnat page, int toclear, int toset)
   uintnat j = Pagetable_index2(page);
 
   if (caml_page_table[i] == caml_page_table_empty) {
-    unsigned char * new_tbl = calloc(Pagetable2_size, 1);
+    /* OCamlCC: fix g++ warning */
+    unsigned char * new_tbl = (unsigned char *) calloc(Pagetable2_size, 1);
     if (new_tbl == 0) return -1;
     caml_page_table[i] = new_tbl;
   }

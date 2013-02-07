@@ -64,13 +64,18 @@ static struct compare_item * compare_resize_stack(struct compare_item * sp)
 
   if (newsize >= COMPARE_STACK_MAX_SIZE) compare_stack_overflow();
   if (compare_stack == compare_stack_init) {
-    newstack = malloc(sizeof(struct compare_item) * newsize);
+    newstack =
+      /* OCamlCC: fix g++ warning */
+      (struct compare_item *) malloc(sizeof(struct compare_item) * newsize);
     if (newstack == NULL) compare_stack_overflow();
     memcpy(newstack, compare_stack_init,
            sizeof(struct compare_item) * COMPARE_STACK_INIT_SIZE);
   } else {
     newstack =
-      realloc(compare_stack, sizeof(struct compare_item) * newsize);
+      /* OCamlCC: fix g++ warning */
+      (struct compare_item *) realloc(compare_stack,
+                                      sizeof(struct compare_item) *
+                                      newsize);
     if (newstack == NULL) compare_stack_overflow();
   }
   compare_stack = newstack;

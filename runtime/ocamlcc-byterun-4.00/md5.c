@@ -56,7 +56,8 @@ CAMLprim value caml_md5_chan(value vchan, value len)
   }else{
     while (toread > 0) {
       read = caml_getblock(chan, buffer,
-                           toread > sizeof(buffer) ? sizeof(buffer) : toread);
+                           /* OCamlCC: fix g++ warning */
+                           toread > (intnat) sizeof(buffer) ? sizeof(buffer) : toread);
       if (read == 0) caml_raise_end_of_file();
       caml_MD5Update(&ctx, (unsigned char *) buffer, read);
       toread -= read;
@@ -73,7 +74,8 @@ CAMLexport void caml_md5_block(unsigned char digest[16],
 {
   struct MD5Context ctx;
   caml_MD5Init(&ctx);
-  caml_MD5Update(&ctx, data, len);
+  /* OCamlCC: fix g++ warning */
+  caml_MD5Update(&ctx, (unsigned char *) data, len);
   caml_MD5Final(digest, &ctx);
 }
 

@@ -45,8 +45,10 @@ static struct to_do *to_do_tl = NULL;
 
 static void alloc_to_do (int size)
 {
-  struct to_do *result = malloc (sizeof (struct to_do)
-                                 + size * sizeof (struct final));
+  /* OCamlCC: fix g++ warning */
+  struct to_do *result =
+    (struct to_do *) malloc (sizeof (struct to_do)
+                             + size * sizeof (struct final));
   if (result == NULL) caml_fatal_error ("out of memory");
   result->next = NULL;
   result->size = size;
@@ -166,7 +168,8 @@ void caml_final_do_strong_roots (scanning_action f)
   for (i = 0; i < old; i++) Call_action (f, final_table[i].fun);
 
   for (todo = to_do_hd; todo != NULL; todo = todo->next){
-    for (i = 0; i < todo->size; i++){
+    /* OCamlCC: fix g++ warning */
+    for (i = 0; (int) i < todo->size; i++){
       Call_action (f, todo->item[i].fun);
       Call_action (f, todo->item[i].val);
     }
@@ -219,14 +222,18 @@ CAMLprim value caml_final_register (value f, value v)
   if (young >= size){
     if (final_table == NULL){
       uintnat new_size = 30;
-      final_table = caml_stat_alloc (new_size * sizeof (struct final));
+      /* OCamlCC: fix g++ warning */
+      final_table =
+        (struct final *) caml_stat_alloc (new_size * sizeof (struct final));
       Assert (old == 0);
       Assert (young == 0);
       size = new_size;
     }else{
       uintnat new_size = size * 2;
-      final_table = caml_stat_resize (final_table,
-                                      new_size * sizeof (struct final));
+      final_table =
+        /* OCamlCC: fix g++ warning */
+        (struct final *)
+        caml_stat_resize (final_table, new_size * sizeof (struct final));
       size = new_size;
     }
   }

@@ -92,7 +92,8 @@ static intnat parse_intnat(value s, int nbits)
   } else {
     /* Unsigned representation expected, allow 0 to 2^nbits - 1
        and tolerate -(2^nbits - 1) to 0 */
-    if (nbits < sizeof(uintnat) * 8 && res >= (uintnat)1 << nbits)
+    /* OCamlCC: fix g++ warning */
+    if (nbits < (int) sizeof(uintnat) * 8 && res >= (uintnat)1 << nbits)
       caml_failwith("int_of_string");
   }
   return sign < 0 ? -((intnat) res) : (intnat) res;
@@ -132,7 +133,8 @@ CAMLprim value caml_int_of_string(value s)
 #define FORMAT_BUFFER_SIZE 32
 
 static char * parse_format(value fmt,
-                           char * suffix,
+                           /* OCamlCC: fix g++ warning */
+                           const char * suffix,
                            char format_string[],
                            char default_format_buffer[],
                            char *conv)
@@ -168,7 +170,8 @@ static char * parse_format(value fmt,
   if (prec < FORMAT_BUFFER_SIZE)
     return default_format_buffer;
   else
-    return caml_stat_alloc(prec + 1);
+    /* OCamlCC: fix g++ warning */
+    return (char *) caml_stat_alloc(prec + 1);
 }
 
 CAMLprim value caml_format_int(value fmt, value arg)

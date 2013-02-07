@@ -92,7 +92,8 @@ static int dbg_socket = -1;     /* The socket connected to the debugger */
 static struct channel * dbg_in; /* Input channel on the socket */
 static struct channel * dbg_out;/* Output channel on the socket */
 
-static char *dbg_addr = "(none)";
+/* OCamlCC: remove g++ warning */
+static const char *dbg_addr = "(none)";
 
 static void open_connection(void)
 {
@@ -205,7 +206,8 @@ void caml_debugger_init(void)
          n > 0; n--) *p++ = 0;
     sock_addr.s_inet.sin_family = AF_INET;
     sock_addr.s_inet.sin_addr.s_addr = inet_addr(address);
-    if (sock_addr.s_inet.sin_addr.s_addr == -1) {
+    /* OCamlCC: fix g++ warning */
+    if (sock_addr.s_inet.sin_addr.s_addr == (in_addr_t) (-1)) {
       host = gethostbyname(address);
       if (host == NULL)
         caml_fatal_error_arg("Unknown debugging host %s\n", address);

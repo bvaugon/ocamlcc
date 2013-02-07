@@ -53,14 +53,18 @@ CAMLprim value caml_create_string(value len)
 CAMLprim value caml_string_get(value str, value index)
 {
   intnat idx = Long_val(index);
-  if (idx < 0 || idx >= caml_string_length(str)) caml_array_bound_error();
+  /* OCamlCC: fix g++ warning */
+  if (idx < 0 || idx >= (intnat) caml_string_length(str))
+    caml_array_bound_error();
   return Val_int(Byte_u(str, idx));
 }
 
 CAMLprim value caml_string_set(value str, value index, value newval)
 {
   intnat idx = Long_val(index);
-  if (idx < 0 || idx >= caml_string_length(str)) caml_array_bound_error();
+  /* OCamlCC: fix g++ warning */
+  if (idx < 0 || idx >= (intnat) caml_string_length(str))
+    caml_array_bound_error();
   Byte_u(str, idx) = Int_val(newval);
   return Val_unit;
 }

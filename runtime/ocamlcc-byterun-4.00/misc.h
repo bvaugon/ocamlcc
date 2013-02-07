@@ -64,10 +64,13 @@ CAMLextern int caml_failed_assert (char *, char *, int);
 #define CAMLassert(x) ((void) 0)
 #endif
 
-CAMLextern void caml_fatal_error (char *msg) Noreturn;
-CAMLextern void caml_fatal_error_arg (char *fmt, char *arg) Noreturn;
-CAMLextern void caml_fatal_error_arg2 (char *fmt1, char *arg1,
-                                       char *fmt2, char *arg2) Noreturn;
+/* OCamlCC: remove g++ warnings */
+CAMLextern void caml_fatal_error (const char *msg) Noreturn;
+CAMLextern void caml_fatal_error_arg (const char *fmt,
+                                      const char *arg) Noreturn;
+CAMLextern void caml_fatal_error_arg2 (const char *fmt1, const char *arg1,
+                                       const char *fmt2,
+                                       const char *arg2) Noreturn;
 
 /* Data structures */
 
@@ -84,7 +87,8 @@ extern void caml_ext_table_free(struct ext_table * tbl, int free_entries);
 /* GC flags and messages */
 
 extern uintnat caml_verb_gc;
-void caml_gc_message (int, char *, uintnat);
+/* OCamlCC: fix g++ warning */
+void caml_gc_message (int, const char *, uintnat);
 
 /* Memory routines */
 

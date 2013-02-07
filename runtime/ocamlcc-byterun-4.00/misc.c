@@ -41,7 +41,8 @@ void caml_set_fields (char *bp, unsigned long start, unsigned long filler)
 
 uintnat caml_verb_gc = 0;
 
-void caml_gc_message (int level, char *msg, uintnat arg)
+/* OCamlCC: fix g++ warning */
+void caml_gc_message (int level, const char *msg, uintnat arg)
 {
   if (level < 0 || (caml_verb_gc & level) != 0){
     fprintf (stderr, msg, arg);
@@ -49,20 +50,21 @@ void caml_gc_message (int level, char *msg, uintnat arg)
   }
 }
 
-CAMLexport void caml_fatal_error (char *msg)
+/* OCamlCC: remove g++ warnings */
+CAMLexport void caml_fatal_error (const char *msg)
 {
   fprintf (stderr, "%s", msg);
   exit(2);
 }
 
-CAMLexport void caml_fatal_error_arg (char *fmt, char *arg)
+CAMLexport void caml_fatal_error_arg (const char *fmt, const char *arg)
 {
   fprintf (stderr, fmt, arg);
   exit(2);
 }
 
-CAMLexport void caml_fatal_error_arg2 (char *fmt1, char *arg1,
-                                       char *fmt2, char *arg2)
+CAMLexport void caml_fatal_error_arg2 (const char *fmt1, const char *arg1,
+                                       const char *fmt2, const char *arg2)
 {
   fprintf (stderr, fmt1, arg1);
   fprintf (stderr, fmt2, arg2);
@@ -99,7 +101,8 @@ void caml_ext_table_init(struct ext_table * tbl, int init_capa)
 {
   tbl->size = 0;
   tbl->capacity = init_capa;
-  tbl->contents = caml_stat_alloc(sizeof(void *) * init_capa);
+  /* OCamlCC: fix g++ warning */
+  tbl->contents = (void **) caml_stat_alloc(sizeof(void *) * init_capa);
 }
 
 int caml_ext_table_add(struct ext_table * tbl, void * data)
@@ -107,7 +110,9 @@ int caml_ext_table_add(struct ext_table * tbl, void * data)
   int res;
   if (tbl->size >= tbl->capacity) {
     tbl->capacity *= 2;
+    /* OCamlCC: fix g++ warning */
     tbl->contents =
+      (void **)
       caml_stat_resize(tbl->contents, sizeof(void *) * tbl->capacity);
   }
   res = tbl->size;

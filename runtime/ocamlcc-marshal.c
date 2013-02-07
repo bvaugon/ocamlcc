@@ -33,7 +33,8 @@ void ocamlcc_codeptrs_init(void) {
   {
     struct code_fragment * cf;
     /* Register the code in the table of code fragments */
-    cf = caml_stat_alloc(sizeof(struct code_fragment));
+    cf = (struct code_fragment *)
+      caml_stat_alloc(sizeof(struct code_fragment));
     cf->code_start = (char *) caml_start_code;
     cf->code_end = (char *) caml_start_code + caml_code_size;
     memcpy(cf->digest, OCAMLCC_MD5, 16);

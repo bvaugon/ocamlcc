@@ -41,7 +41,8 @@ unsigned char caml_code_md5[16];
 void caml_init_code_fragments() {
   struct code_fragment * cf;
   /* Register the code in the table of code fragments */
-  cf = caml_stat_alloc(sizeof(struct code_fragment));
+  cf =
+    (struct code_fragment *) caml_stat_alloc(sizeof(struct code_fragment));
   cf->code_start = (char *) caml_start_code;
   cf->code_end = (char *) caml_start_code + caml_code_size;
   caml_md5_block(cf->digest, caml_start_code, caml_code_size);
@@ -52,11 +53,14 @@ void caml_init_code_fragments() {
 
 void caml_load_code(int fd, asize_t len)
 {
-  int i;
+  /* OCamlCC: fix g++ warning */
+  asize_t i;
 
   caml_code_size = len;
   caml_start_code = (code_t) caml_stat_alloc(caml_code_size);
-  if (read(fd, (char *) caml_start_code, caml_code_size) != caml_code_size)
+  /* OCamlCC: fix g++ warning */
+  if (read(fd, (char *) caml_start_code, caml_code_size) !=
+      (ssize_t) caml_code_size)
     caml_fatal_error("Fatal error: truncated bytecode file.\n");
   caml_init_code_fragments();
   /* Prepare the code for execution */

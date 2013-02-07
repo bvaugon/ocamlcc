@@ -272,7 +272,9 @@ static value caml_array_gather(intnat num_arrays,
   CAMLparamN(arrays, num_arrays);
   value res;                    /* no need to register it as a root */
   int isfloat;
-  mlsize_t i, size, wsize, count, pos;
+  /* OCamlCC: fix g++ warning */
+  intnat i;
+  mlsize_t size, wsize, count, pos;
   value * src;
 
   /* Determine total size and whether result array is an array of floats */
@@ -367,9 +369,10 @@ CAMLprim value caml_array_concat(value al)
     offsets = static_offsets;
     lengths = static_lengths;
   } else {
-    arrays = caml_stat_alloc(n * sizeof(value));
-    offsets = caml_stat_alloc(n * sizeof(intnat));
-    lengths = caml_stat_alloc(n * sizeof(value));
+    /* OCamlCC: fix g++ warnings */
+    arrays = (value *) caml_stat_alloc(n * sizeof(value));
+    offsets = (intnat *) caml_stat_alloc(n * sizeof(intnat));
+    lengths = (intnat *) caml_stat_alloc(n * sizeof(value));
   }
   /* Build the parameters to caml_array_gather */
   for (i = 0, l = al; l != Val_int(0); l = Field(l, 1), i++) {

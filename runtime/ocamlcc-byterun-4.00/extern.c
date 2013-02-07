@@ -72,8 +72,10 @@ static struct extern_item * extern_stack_limit = extern_stack_init
 /* Forward declarations */
 
 static void extern_out_of_memory(void);
-static void extern_invalid_argument(char *msg);
-static void extern_failwith(char *msg);
+/* OCamlCC: fix g++ warning */
+static void extern_invalid_argument(const char *msg);
+/* OCamlCC: fix g++ warning */
+static void extern_failwith(const char *msg);
 static void extern_stack_overflow(void);
 static struct code_fragment * extern_find_code(char *addr);
 static void extern_replay_trail(void);
@@ -98,13 +100,17 @@ static struct extern_item * extern_resize_stack(struct extern_item * sp)
 
   if (newsize >= EXTERN_STACK_MAX_SIZE) extern_stack_overflow();
   if (extern_stack == extern_stack_init) {
-    newstack = malloc(sizeof(struct extern_item) * newsize);
+    newstack =
+      /* OCamlCC: fix g++ warning */
+      (struct extern_item *) malloc(sizeof(struct extern_item) * newsize);
     if (newstack == NULL) extern_stack_overflow();
     memcpy(newstack, extern_stack_init,
            sizeof(struct extern_item) * EXTERN_STACK_INIT_SIZE);
   } else {
     newstack =
-      realloc(extern_stack, sizeof(struct extern_item) * newsize);
+      /* OCamlCC: fix g++ warning */
+      (struct extern_item *) realloc(extern_stack,
+                                     sizeof(struct extern_item) * newsize);
     if (newstack == NULL) extern_stack_overflow();
   }
   extern_stack = newstack;
@@ -159,7 +165,9 @@ static void extern_record_location(value obj)
 
   if (extern_ignore_sharing) return;
   if (extern_trail_cur == extern_trail_limit) {
-    struct trail_block * new_block = malloc(sizeof(struct trail_block));
+    struct trail_block * new_block =
+      /* OCamlCC: fix g++ warning */
+      (struct trail_block *) malloc(sizeof(struct trail_block));
     if (new_block == NULL) extern_out_of_memory();
     new_block->previous = extern_trail_block;
     extern_trail_block = new_block;
@@ -191,7 +199,9 @@ static struct output_block * extern_output_first, * extern_output_block;
 static void init_extern_output(void)
 {
   extern_userprovided_output = NULL;
-  extern_output_first = malloc(sizeof(struct output_block));
+  /* OCamlCC: fix g++ warning */
+  extern_output_first = 
+    (struct output_block *) malloc(sizeof(struct output_block));
   if (extern_output_first == NULL) caml_raise_out_of_memory();
   extern_output_block = extern_output_first;
   extern_output_block->next = NULL;
@@ -232,7 +242,8 @@ static void grow_extern_output(intnat required)
     extra = 0;
   else
     extra = required;
-  blk = malloc(sizeof(struct output_block) + extra);
+  /* OCamlCC: fix g++ warning */
+  blk = (struct output_block *) malloc(sizeof(struct output_block) + extra);
   if (blk == NULL) extern_out_of_memory();
   extern_output_block->next = blk;
   extern_output_block = blk;
@@ -264,14 +275,16 @@ static void extern_out_of_memory(void)
   caml_raise_out_of_memory();
 }
 
-static void extern_invalid_argument(char *msg)
+/* OCamlCC: fix g++ warning */
+static void extern_invalid_argument(const char *msg)
 {
   extern_replay_trail();
   free_extern_output();
   caml_invalid_argument(msg);
 }
 
-static void extern_failwith(char *msg)
+/* OCamlCC: fix g++ warning */
+static void extern_failwith(const char *msg)
 {
   extern_replay_trail();
   free_extern_output();
@@ -292,7 +305,8 @@ static void extern_stack_overflow(void)
   if (extern_ptr >= extern_limit) grow_extern_output(1); \
   *extern_ptr++ = (c)
 
-static void writeblock(char *data, intnat len)
+/* OCamlCC: fix g++ warning */
+static void writeblock(const char *data, intnat len)
 {
   if (extern_ptr + len > extern_limit) grow_extern_output(len);
   memmove(extern_ptr, data, len);
@@ -471,7 +485,8 @@ static void extern_rec(value v)
       break;
     case Custom_tag: {
       uintnat sz_32, sz_64;
-      char * ident = Custom_ops_val(v)->identifier;
+      /* OCamlCC: fix g++ warning */
+      const char * ident = Custom_ops_val(v)->identifier;
       void (*serialize)(value v, uintnat * wsize_32,
                         uintnat * wsize_64)
         = Custom_ops_val(v)->serialize;
@@ -664,7 +679,8 @@ CAMLexport void caml_output_value_to_malloc(value v, value flags,
 
   init_extern_output();
   len_res = extern_value(v, flags);
-  res = malloc(len_res);
+  /* OCamlCC: fix g++ warning */
+  res = (char *) malloc(len_res);
   if (res == NULL) extern_out_of_memory();
   *buf = res;
   *len = len_res;
@@ -743,7 +759,9 @@ CAMLexport void caml_serialize_block_2(void * data, intnat len)
   {
     unsigned char * p;
     char * q;
-    for (p = data, q = extern_ptr; len > 0; len--, p += 2, q += 2)
+    /* OCamlCC: fix g++ warning */
+    for (p = (unsigned char *) data, q = extern_ptr; len > 0;
+         len--, p += 2, q += 2)
       Reverse_16(q, p);
     extern_ptr = q;
   }
@@ -760,7 +778,9 @@ CAMLexport void caml_serialize_block_4(void * data, intnat len)
   {
     unsigned char * p;
     char * q;
-    for (p = data, q = extern_ptr; len > 0; len--, p += 4, q += 4)
+    /* OCamlCC: fix g++ warning */
+    for (p = (unsigned char *) data, q = extern_ptr; len > 0;
+         len--, p += 4, q += 4)
       Reverse_32(q, p);
     extern_ptr = q;
   }
@@ -777,7 +797,9 @@ CAMLexport void caml_serialize_block_8(void * data, intnat len)
   {
     unsigned char * p;
     char * q;
-    for (p = data, q = extern_ptr; len > 0; len--, p += 8, q += 8)
+    /* OCamlCC: fix g++ warning */
+    for (p = (unsigned char *) data, q = extern_ptr; len > 0;
+         len--, p += 8, q += 8)
       Reverse_64(q, p);
     extern_ptr = q;
   }
@@ -797,7 +819,9 @@ CAMLexport void caml_serialize_block_float_8(void * data, intnat len)
   {
     unsigned char * p;
     char * q;
-    for (p = data, q = extern_ptr; len > 0; len--, p += 8, q += 8)
+    /* OCamlCC: fix g++ warning */
+    for (p = (unsigned char *) data, q = extern_ptr; len > 0;
+         len--, p += 8, q += 8)
       Reverse_64(q, p);
     extern_ptr = q;
   }
@@ -818,7 +842,9 @@ static struct code_fragment * extern_find_code(char *addr)
 {
   int i;
   for (i = caml_code_fragments_table.size - 1; i >= 0; i--) {
-    struct code_fragment * cf = caml_code_fragments_table.contents[i];
+    /* OCamlCC: fix g++ warning */
+    struct code_fragment * cf =
+      (struct code_fragment *) caml_code_fragments_table.contents[i];
     if (! cf->digest_computed) {
       caml_md5_block(cf->digest, cf->code_start, cf->code_end - cf->code_start);
       cf->digest_computed = 1;

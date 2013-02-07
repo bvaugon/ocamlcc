@@ -15,7 +15,10 @@
 
 /* Unix-specific stuff */
 
+/* OCamlCC: _GNU_SOURCE can already been defined */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
            /* Helps finding RTLD_DEFAULT in glibc */
 
 #include <stddef.h>
@@ -54,7 +57,8 @@ char * caml_decompose_path(struct ext_table * tbl, char * path)
   int n;
 
   if (path == NULL) return NULL;
-  p = caml_stat_alloc(strlen(path) + 1);
+  /* OCamlCC: fix g++ warning */
+  p = (char *) caml_stat_alloc(strlen(path) + 1);
   strcpy(p, path);
   q = p;
   while (1) {
@@ -78,7 +82,9 @@ char * caml_search_in_path(struct ext_table * path, char * name)
     if (*p == '/') goto not_found;
   }
   for (i = 0; i < path->size; i++) {
-    fullname = caml_stat_alloc(strlen((char *)(path->contents[i])) +
+    /* OCamlCC: fix g++ warning */
+    fullname =
+      (char *) caml_stat_alloc(strlen((char *)(path->contents[i])) +
                                strlen(name) + 2);
     strcpy(fullname, (char *)(path->contents[i]));
     if (fullname[0] != 0) strcat(fullname, "/");
@@ -87,7 +93,8 @@ char * caml_search_in_path(struct ext_table * path, char * name)
     caml_stat_free(fullname);
   }
  not_found:
-  fullname = caml_stat_alloc(strlen(name) + 1);
+  /* OCamlCC: fix g++ warning */
+  fullname = (char *) caml_stat_alloc(strlen(name) + 1);
   strcpy(fullname, name);
   return fullname;
 }
@@ -158,7 +165,8 @@ char * caml_search_exe_in_path(char * name)
 
 char * caml_search_dll_in_path(struct ext_table * path, char * name)
 {
-  char * dllname = caml_stat_alloc(strlen(name) + 4);
+  /* OCamlCC: fix g++ warning */
+  char * dllname = (char *) caml_stat_alloc(strlen(name) + 4);
   char * res;
   strcpy(dllname, name);
   strcat(dllname, ".so");
@@ -295,7 +303,8 @@ int caml_read_directory(char * dirname, struct ext_table * contents)
     e = readdir(d);
     if (e == NULL) break;
     if (strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0) continue;
-    p = caml_stat_alloc(strlen(e->d_name) + 1);
+    /* OCamlCC: fix g++ warning */
+    p = (char *) caml_stat_alloc(strlen(e->d_name) + 1);
     strcpy(p, e->d_name);
     caml_ext_table_add(contents, p);
   }

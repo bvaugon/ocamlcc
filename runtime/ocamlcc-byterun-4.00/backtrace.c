@@ -101,7 +101,9 @@ void caml_stash_backtrace(value exn, code_t pc, value * sp)
     caml_backtrace_last_exn = exn;
   }
   if (caml_backtrace_buffer == NULL) {
-    caml_backtrace_buffer = malloc(BACKTRACE_BUFFER_SIZE * sizeof(code_t));
+    /* OCamlCC: fix g++ warning */
+    caml_backtrace_buffer =
+      (code_t *) malloc(BACKTRACE_BUFFER_SIZE * sizeof(code_t));
     if (caml_backtrace_buffer == NULL) return;
   }
   if (caml_backtrace_pos >= BACKTRACE_BUFFER_SIZE) return;
@@ -228,7 +230,8 @@ static void extract_location_info(value events, code_t pc,
 
 static void print_location(struct loc_info * li, int index)
 {
-  char * info;
+  /* OCamlCC: fix g++ warning */
+  const char * info;
 
   /* Ignore compiler-inserted raise */
   if (!li->loc_valid && li->loc_is_raise) return;

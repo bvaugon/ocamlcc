@@ -457,9 +457,9 @@ and print_fun_ptrs oc fun_defs =
     if fun_def.fdf_fun_id <> 0 then (
       if !cnt <> 0 then (
         Printf.fprintf oc ",";
-        if !cnt mod 8 = 0 then Printf.fprintf oc "\n ";
+        if !cnt mod 4 = 0 then Printf.fprintf oc "\n ";
       );
-      Printf.fprintf oc " &f%d" fun_def.fdf_fun_id;
+      Printf.fprintf oc " (void*) &f%d" fun_def.fdf_fun_id;
       incr cnt;
     );
   in

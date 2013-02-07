@@ -20,6 +20,7 @@ tests/*-i586
 tests/*-i686
 tests/*-x86_64
 tests/*-try
+tests/*-clang
 tests/*-gsp
 tests/*-rsp
 tests/extexn

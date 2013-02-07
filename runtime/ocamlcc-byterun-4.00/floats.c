@@ -103,10 +103,12 @@ CAMLprim value caml_format_float(value fmt, value arg)
       break;
     }
   }
-  if (prec < sizeof(format_buffer)) {
+  /* OCamlCC: fix g++ warning */
+  if (prec < (int) sizeof(format_buffer)) {
     dest = format_buffer;
   } else {
-    dest = caml_stat_alloc(prec);
+    /* OCamlCC: fix g++ warning */
+    dest = (char *) caml_stat_alloc(prec);
   }
   sprintf(dest, String_val(fmt), d);
   res = caml_copy_string(dest);
@@ -146,9 +148,13 @@ CAMLprim value caml_format_float(value fmt, value arg)
 
   lenvs = caml_string_length(vs);
   len =
-    fidx >= 0 && fidx < lenvs && flen > 0 && flen <= lenvs - fidx
+    /* OCamlCC: fix g++ warning */
+    fidx >= 0 && fidx < (intnat) lenvs && flen > 0 &&
+    flen <= (intnat) lenvs - fidx
     ? flen : 0;
-  buf = len < sizeof(parse_buffer) ? parse_buffer : caml_stat_alloc(len + 1);
+  buf = len < sizeof(parse_buffer) ? parse_buffer :
+    /* OCamlCC: fix g++ warning */
+    (char *) caml_stat_alloc(len + 1);
   src = String_val(vs) + fidx;
   dst = buf;
   while (len--) {
@@ -174,7 +180,9 @@ CAMLprim value caml_float_of_string(value vs)
   double d;
 
   len = caml_string_length(vs);
-  buf = len < sizeof(parse_buffer) ? parse_buffer : caml_stat_alloc(len + 1);
+  buf = len < sizeof(parse_buffer) ? parse_buffer :
+    /* OCamlCC: fix g++ warning */
+    (char *) caml_stat_alloc(len + 1);
   src = String_val(vs);
   dst = buf;
   while (len--) {

@@ -146,7 +146,8 @@ CAMLextern void caml_deserialize_block_2(void * data, intnat len);
 CAMLextern void caml_deserialize_block_4(void * data, intnat len);
 CAMLextern void caml_deserialize_block_8(void * data, intnat len);
 CAMLextern void caml_deserialize_block_float_8(void * data, intnat len);
-CAMLextern void caml_deserialize_error(char * msg);
+  /* OCamlCC: fix g++ warning */
+CAMLextern void caml_deserialize_error(const char * msg);
 
 /* <private> */
 

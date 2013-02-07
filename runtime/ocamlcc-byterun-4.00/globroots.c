@@ -93,8 +93,11 @@ static void caml_insert_global_root(struct global_root_list * rootlist,
       update[i] = (struct global_root *) rootlist;
     rootlist->level = new_level;
   }
-  e = caml_stat_alloc(sizeof(struct global_root) +
-                      new_level * sizeof(struct global_root *));
+  /* OCamlCC: fix g++ warning */
+  e =
+    (struct global_root *)
+    caml_stat_alloc(sizeof(struct global_root) +
+                    new_level * sizeof(struct global_root *));
   e->root = r;
   for (i = 0; i <= new_level; i++) {
     e->forward[i] = update[i]->forward[i];

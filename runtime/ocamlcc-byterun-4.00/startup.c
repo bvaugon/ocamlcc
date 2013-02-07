@@ -138,10 +138,13 @@ int caml_attempt_open(char **name, struct exec_trailer *trail,
 
 void caml_read_section_descriptors(int fd, struct exec_trailer *trail)
 {
-  int toc_size, i;
+  /* OCamlCC: fix g++ warning */
+  int toc_size;
+  uint32 i;
 
   toc_size = trail->num_sections * 8;
-  trail->section = caml_stat_alloc(toc_size);
+  /* OCamlCC: fix g++ warning */
+  trail->section = (struct section_descriptor *) caml_stat_alloc(toc_size);
   lseek(fd, - (long) (TRAILER_SIZE + toc_size), SEEK_END);
   if (read(fd, (char *) trail->section, toc_size) != toc_size)
     caml_fatal_error("Fatal error: cannot read section table\n");
@@ -154,7 +157,8 @@ void caml_read_section_descriptors(int fd, struct exec_trailer *trail)
    Return the length of the section data in bytes, or -1 if no section
    found with that name. */
 
-int32 caml_seek_optional_section(int fd, struct exec_trailer *trail, char *name)
+/* OCamlCC: fix g++ warning */
+int32 caml_seek_optional_section(int fd, struct exec_trailer *trail, const char *name)
 {
   long ofs;
   int i;

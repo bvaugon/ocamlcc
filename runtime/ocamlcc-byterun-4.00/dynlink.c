@@ -74,14 +74,17 @@ static c_primitive lookup_primitive(char * name)
 
 static char * parse_ld_conf(void)
 {
-  char * stdlib, * ldconfname, * config, * p, * q;
+  /* OCamlCC: fix g++ warning */
+  const char * stdlib;
+  char * ldconfname, * config, * p, * q;
   struct stat st;
   int ldconf, nread;
 
   stdlib = getenv("OCAMLLIB");
   if (stdlib == NULL) stdlib = getenv("CAMLLIB");
   if (stdlib == NULL) stdlib = OCAML_STDLIB_DIR;
-  ldconfname = caml_stat_alloc(strlen(stdlib) + 2 + sizeof(LD_CONF_NAME));
+  ldconfname =
+    (char *) caml_stat_alloc(strlen(stdlib) + 2 + sizeof(LD_CONF_NAME));
   strcpy(ldconfname, stdlib);
   strcat(ldconfname, "/" LD_CONF_NAME);
   if (stat(ldconfname, &st) == -1) {
@@ -92,7 +95,8 @@ static char * parse_ld_conf(void)
   if (ldconf == -1)
     caml_fatal_error_arg("Fatal error: cannot read loader config file %s\n",
                          ldconfname);
-  config = caml_stat_alloc(st.st_size + 1);
+  config =
+    (char *) caml_stat_alloc(st.st_size + 1);
   nread = read(ldconf, config, st.st_size);
   if (nread == -1)
     caml_fatal_error_arg

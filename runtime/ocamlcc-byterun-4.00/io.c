@@ -216,7 +216,9 @@ CAMLexport void caml_putword(struct channel *channel, uint32 w)
   putch(channel, w);
 }
 
-CAMLexport int caml_putblock(struct channel *channel, char *p, intnat len)
+/* OCamlCC: fix g++ warning */
+CAMLexport int caml_putblock(struct channel *channel, const char *p,
+                             intnat len)
 {
   int n, free, towrite, written;
 
@@ -241,8 +243,9 @@ CAMLexport int caml_putblock(struct channel *channel, char *p, intnat len)
   }
 }
 
+/* OCamlCC: fix g++ warning */
 CAMLexport void caml_really_putblock(struct channel *channel,
-                                     char *p, intnat len)
+                                     const char *p, intnat len)
 {
   int written;
   while (len > 0) {

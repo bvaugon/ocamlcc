@@ -430,7 +430,8 @@ void caml_compact_heap (void)
   target_words = live + caml_percent_free * (live / 100 + 1)
                  + Wsize_bsize (Page_size);
   target_size = caml_round_heap_chunk_size (Bsize_wsize (target_words));
-  if (target_size < caml_stat_heap_size / 2){
+  /* OCamlCC: fix g++ warning */
+  if (target_size < (uintnat) (caml_stat_heap_size / 2)){
     char *chunk;
 
     caml_gc_message (0x10, "Recompacting heap (target=%luk)\n",

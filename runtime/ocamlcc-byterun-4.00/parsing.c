@@ -104,7 +104,8 @@ int caml_parser_trace = 0;
 
 /* Auxiliary for printing token just read */
 
-static char * token_name(char * names, int number)
+/* OCamlCC: fix g++ warning */
+static const char * token_name(char * names, int number)
 {
   for (/*nothing*/; number > 0; number--) {
     if (names[0] == 0) return "<unknown token>";

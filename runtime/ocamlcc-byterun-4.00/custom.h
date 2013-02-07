@@ -23,7 +23,8 @@
 #include "mlvalues.h"
 
 struct custom_operations {
-  char *identifier;
+  /* OCamlCC: fix g++ warning */
+  const char *identifier;
   void (*finalize)(value v);
   int (*compare)(value v1, value v2);
   intnat (*hash)(value v);
