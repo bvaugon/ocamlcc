@@ -187,7 +187,7 @@ let run_cc args =
   let command =
     Printf.sprintf
       "%s -D_FILE_OFFSET_BITS=64 %s -I %s -I %s/ocamlcc-byterun-%s%s \
-       -lm -ldl -lcurses -Wl,-E %s"
+       -lm -ldl -lcurses -Wl,--export-dynamic %s"
       !Options.ccomp args Config.include_dir Config.include_dir
       !Options.runtime_version fnofp !Options.ccopts
   in
