@@ -452,7 +452,7 @@ CAMLprim value caml_int64_div(value v1, value v2)
 {
   int64 dividend = Int64_val(v1);
   int64 divisor = Int64_val(v2);
-  if (I64_is_zero(divisor)) caml_raise_zero_divide();
+  if I64_is_zero(divisor) caml_raise_zero_divide();
   /* PR#4740: on some processors, division crashes on overflow.
      Implement the same behavior as for type "int". */
   if (I64_is_min_int(dividend) && I64_is_minus_one(divisor)) return v1;
@@ -463,7 +463,7 @@ CAMLprim value caml_int64_mod(value v1, value v2)
 {
   int64 dividend = Int64_val(v1);
   int64 divisor = Int64_val(v2);
-  if (I64_is_zero(divisor)) caml_raise_zero_divide();
+  if I64_is_zero(divisor) caml_raise_zero_divide();
   /* PR#4740: on some processors, division crashes on overflow.
      Implement the same behavior as for type "int". */
   if (I64_is_min_int(dividend) && I64_is_minus_one(divisor)) {
