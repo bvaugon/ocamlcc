@@ -96,7 +96,8 @@ int caml_page_table_initialize(mlsize_t bytesize)
   }
   caml_page_table.mask = caml_page_table.size - 1;
   caml_page_table.occupancy = 0;
-  caml_page_table.entries = calloc(caml_page_table.size, sizeof(uintnat));
+  caml_page_table.entries = (uintnat *)
+    calloc(caml_page_table.size, sizeof(uintnat));
   if (caml_page_table.entries == NULL)
     return -1;
   else
@@ -112,7 +113,7 @@ static int caml_page_table_resize(void)
   caml_gc_message (0x08, "Growing page table to %lu entries\n",
                    caml_page_table.size);
 
-  new_entries = calloc(2 * old.size, sizeof(uintnat));
+  new_entries = (uintnat *) calloc(2 * old.size, sizeof(uintnat));
   if (new_entries == NULL) {
     caml_gc_message (0x08, "No room for growing page table\n", 0);
     return -1;

@@ -244,12 +244,6 @@ floco%-clang: floco%-clang.o check-project
 
 ###
 
-%.o: %.c check-project
-	$(CC) -c $< $(CC_FLAGS)
-
-%: %.o check-project
-	$(CC) $< -o $@ $(CL_FLAGS)
-
 %-$(ARCH).o: %-$(ARCH).c check-project
 	$(CC) -c $< $(CC_FLAGS) -fno-omit-frame-pointer
 
@@ -267,6 +261,12 @@ floco%-clang: floco%-clang.o check-project
 
 %-clang: %-clang.o check-project
 	clang $< -o $@ $(CL_FLAGS)
+
+%.o: %.c check-project
+	$(CC) -c $< $(CC_FLAGS)
+
+%: %.o check-project
+	$(CC) $< -o $@ $(CL_FLAGS)
 
 ###
 

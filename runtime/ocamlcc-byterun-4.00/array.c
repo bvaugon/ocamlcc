@@ -348,7 +348,7 @@ CAMLprim value caml_array_append(value a1, value a2)
 {
   value arrays[2] = { a1, a2 };
   intnat offsets[2] = { 0, 0 };
-  intnat lengths[2] = { caml_array_length(a1), caml_array_length(a2) };
+  intnat lengths[2] = { (intnat) caml_array_length(a1), (intnat) caml_array_length(a2) };
   return caml_array_gather(2, arrays, offsets, lengths);
 }
 
