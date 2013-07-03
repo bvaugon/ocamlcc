@@ -189,12 +189,6 @@ flocon-gsp.c: flocon.byte check-project
 flocon-rsp.c: flocon.byte check-project
 	$(OCAMLCC) -signal R -c -verbose -stat -arch GEN -stack-pointer R $< -o $@
 
-floco%.o: floco%.c check-project
-	$(CC) -c $< $(CC_FLAGS)
-
-floco%: floco%.o check-project
-	$(CC) $< -o $@ -L $(LIBDIR) $(CL_FLAGS) -lgraphics -lX11 -lunix
-
 floco%-try.o: floco%-try.c check-project
 	g++ -c $< $(CC_FLAGS)
 
@@ -207,6 +201,12 @@ floco%-clang.o: floco%-clang.c check-project
 floco%-clang: floco%-clang.o check-project
 	clang $< -o $@ -L $(LIBDIR) $(CL_FLAGS) -lgraphics -lX11 -lunix
 
+floco%.o: floco%.c check-project
+	$(CC) -c $< $(CC_FLAGS)
+
+floco%: floco%.o check-project
+	$(CC) $< -o $@ -L $(LIBDIR) $(CL_FLAGS) -lgraphics -lX11 -lunix
+
 ###
 
 %.byte: %.ml
@@ -215,20 +215,17 @@ floco%-clang: floco%-clang.o check-project
 %.native: %.ml
 	$(OCAMLOPT) $< -o $@
 
-%.c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch GEN $<
-
 %-nxc.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch GEN -no-xconst $< -o $@
 
 %-none.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch NONE $< -o $@
 
-%-$(ARCH).c: %.byte check-project
-	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
-
 %-nxc-$(ARCH).c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) -no-xconst $< -o $@
+
+%-$(ARCH).c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch $(ARCH) $< -o $@
 
 %-try.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch GEN -exception T $< -o $@
@@ -241,6 +238,9 @@ floco%-clang: floco%-clang.o check-project
 
 %-rsp.c: %.byte check-project
 	$(OCAMLCC) -c -verbose -stat -arch GEN -stack-pointer R $< -o $@
+
+%.c: %.byte check-project
+	$(OCAMLCC) -c -verbose -stat -arch GEN $<
 
 ###
 
