@@ -39,7 +39,7 @@ Examples:
     ./configure -bindir /usr/bin -includedir /usr/include -mandir /usr/man/manl
 
 
-2- From the top directory, do:
+2- From the top directory, do this:
 
         make
 
